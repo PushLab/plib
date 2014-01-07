@@ -51,6 +51,11 @@ namespace Plib
 					CONSTRUCTURE;
 					_PHandle = RPItemAlloc.Create( _RInternal );
 				}
+				ReferenceHandleT( _TyInternal * pInternal )
+					: _Count( 1 ), _PHandle(pInternal)
+				{
+					CONSTRUCTURE;
+				}
 				~ReferenceHandleT( ) {
 					DESTRUCTURE;
 					if ( _PHandle != NULL )
@@ -120,6 +125,14 @@ namespace Plib
 				if ( RP._Handle == NULL ) return;
 				RP._Handle->Increase( );
 				_Handle = RP._Handle;
+			}
+
+			// Create Reference Object from a point
+			Reference<_TyInternal, _TyInterAlloc>( _TyInternal * p )
+				: _Handle( NULL )
+			{
+				CONSTRUCTURE;
+				PNEWPARAM( ReferenceHandleT, _Handle, p );
 			}
 			
 			// D'Str
@@ -201,6 +214,16 @@ namespace Plib
 			{
 				return _Handle->_PHandle;
 			}
+
+			INLINE const operator _TyInternal * () const
+			{
+				return _Handle->_PHandle;
+			}
+
+			INLINE operator _TyInternal * ()
+			{
+				return _Handle->_PHandle;
+			}
 			
 			// Reference Check Statue.
 			INLINE bool RefNull( ) const {
@@ -228,6 +251,9 @@ namespace Plib
 			}
 
 			const static Reference< _TyInternal, _TyInterAlloc > NullRefObj;
+			// The internal type.
+			typedef _TyInternal type;
+			typedef _TyInterAlloc allocator;
 		};
 
 		// Const Null Reference Object.

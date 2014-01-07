@@ -28,7 +28,7 @@ namespace Plib
 		{
 		public:
             virtual ~IResponse() {}
-			virtual void generateResponseObjectFromPackage( NData & receiveData ) = 0;
+			virtual void generateResponseObjectFromPackage( const NData & receiveData ) = 0;
 		};
 	}
 }

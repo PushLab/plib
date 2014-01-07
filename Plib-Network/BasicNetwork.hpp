@@ -51,7 +51,7 @@ namespace Plib {
     namespace Network {
 		typedef long SOCKET_T;
 		#ifndef INVALIDATE_SOCKET
-		#define INVALIDATE_SOCKET			((SOCKET_T)-1)
+		#define INVALIDATE_SOCKET			((long)((long)0 - (long)1))
 		#endif
 
 		#define SOCKET_NOT_VALIDATE( so )	((so) == INVALIDATE_SOCKET)

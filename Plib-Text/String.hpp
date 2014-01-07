@@ -1017,6 +1017,13 @@ namespace Plib
 		};
 		
 		template< typename _Basic_C >
+		std::ostream & operator << ( std::ostream & os, const _RString< _Basic_C > & SB )
+		{
+			os << SB.C_Str();
+			return os;
+		}
+
+		template< typename _Basic_C >
 		_RString< _Basic_C > operator + ( const typename _Basic_C::CharType * _Data, 
 				const _RString< _Basic_C > & SB )
 		{

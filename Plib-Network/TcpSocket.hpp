@@ -130,7 +130,8 @@ namespace Plib
 						PLIB_NETWORK_CLOSESOCK( hSo );
 						return INVALIDATE_SOCKET;
 					}
-					struct timeval _tm = { _timeOut / 1000, (_timeOut % 1000) * 1000 };
+					struct timeval _tm = { _timeOut / 1000, 
+						static_cast<__darwin_suseconds_t>((_timeOut % 1000) * 1000) };
 					fd_set _fs;
 					int _error = 0, len = sizeof(_error);
 					FD_ZERO( &_fs );
@@ -175,14 +176,17 @@ namespace Plib
 			{
 				if ( data.RefNull() ) return 0;
 				if ( SOCKET_NOT_VALIDATE(hSo) ) return -1;
+				if ( writeTimeout > 0 ) {
 #if defined WIN32 || defined _WIN32 || defined WIN64 || defined _WIN64
-				setsockopt( hSo, SOL_SOCKET, SO_SNDTIMEO,
-					(const char *)&writeTimeout, sizeof(Uint32) );
+					setsockopt( hSo, SOL_SOCKET, SO_SNDTIMEO,
+						(const char *)&writeTimeout, sizeof(Uint32) );
 #else
-				struct timeval wtv = { writeTimeout / 1000, (writeTimeout % 1000) * 1000 };
-				setsockopt(hSo, SOL_SOCKET, SO_SNDTIMEO, 
-					(const char *)&wtv, sizeof(struct timeval));
+					struct timeval wtv = { writeTimeout / 1000, 
+						static_cast<__darwin_suseconds_t>((writeTimeout % 1000) * 1000) };
+					setsockopt(hSo, SOL_SOCKET, SO_SNDTIMEO, 
+						(const char *)&wtv, sizeof(struct timeval));
 #endif
+				}
 				int _allSent = 0;
 				int _lastSent = 0;
 
@@ -201,10 +205,12 @@ namespace Plib
 						return _lastSent;
 					}
 					_allSent += _lastSent;
-					wStopWatch.Tick();
-					if ( wStopWatch.GetMileSecUsed() >= writeTimeout && 
-						((unsigned int)_allSent < _length) ) 
-						break;
+					if ( writeTimeout > 0 ) {
+						wStopWatch.Tick();
+						if ( wStopWatch.GetMileSecUsed() >= writeTimeout && 
+							((unsigned int)_allSent < _length) ) 
+							break;
+					}
 				}
 				return _allSent;
 			}
@@ -224,7 +230,8 @@ namespace Plib
 				// Data buffer
 				NData _readBuffer;
 
-				struct timeval _tv = { (long)readTimeout / 1000, ((long)readTimeout % 1000) * 1000 };
+				struct timeval _tv = { (long)readTimeout / 1000, 
+					static_cast<__darwin_suseconds_t>(((long)readTimeout % 1000) * 1000) };
 				fd_set recvFs;
 				FD_ZERO( &recvFs );
 				FD_SET( hSo, &recvFs );
@@ -252,6 +259,7 @@ namespace Plib
 					_retCode = ::recv( hSo, _buffer, TcpSocketReadBufferSize, 0 );
 					// Error happen when read data, means the socket has become invalidate
 					if ( _retCode < 0 ) return NData::Null;
+					if ( _retCode == 0 ) break;	// Get EOF
 					_readBuffer.Append( _buffer, _retCode );
 
 					if ( waitUntilTimeout ) continue;

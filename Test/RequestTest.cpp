@@ -20,7 +20,7 @@ using namespace std;
 class NcResponse : public IResponse
 {
 public:
-	virtual void generateResponseObjectFromPackage( NData & receiveData )
+	virtual void generateResponseObjectFromPackage( const NData & receiveData )
 	{
 
 	}
@@ -32,6 +32,8 @@ public:
 	NcRequest( ) 
 	{
 		m_peerInfo.ConnectTimeOut = 30000;
+		m_socket = NULL;
+		m_response = NULL;
 	}
 	NcRequest( const String & address, Uint32 port ) : IRequest( address, port )
 	{
@@ -59,13 +61,16 @@ public:
 
 	// Initialize methods
 	virtual bool InitializeConnector() {
-		if ( this->m_socket == NULL ) {
+		PIF ( this->m_socket == NULL ) {
 			this->m_socket = new TcpSocket();
 		}
-		if ( this->m_socket->isConnected() == false ) {
+		printf("%ld\n", this->m_socket->m_hSocket);
+		printf("%ld\n", INVALIDATE_SOCKET);
+		PIF ( this->m_socket->isConnected() == false ) {
+			PDUMP(this->m_peerInfo);
 			this->m_socket->Connect( this->m_peerInfo );
 		}
-		if ( this->m_socket->isConnected() == false ) {
+		PIF ( this->m_socket->isConnected() == false ) {
 			this->DestroyConnector();
 			return false;
 		}
@@ -96,11 +101,14 @@ int main ( int argc, char * argv[] )
 {
 	Plib::Threading::SetSignalHandle();
 
-	String _string = "GET /index.html HTTP/1.1\r\nHOST : pushchen.com\r\n\r\n";
+	String _string = "GET /index.html HTTP/1.1\r\nHOST : tech.pushchen.com\r\n\r\n";
 	//cout << _string << endl;
 	PINFO( Plib::Network::LocalHostname() );
 	PINFO( Identify::New() );
 
+	cout << boolalpha;
+	cout << is_convertible< IRequest *, IRequest * >::value << endl;
+	cout << is_convertible< NcRequest *, IRequest * >::value << endl;
 	// What I want to write:
 	/*
 	SomeRequest _req(ServerAddress, ServerPort);
@@ -113,11 +121,12 @@ int main ( int argc, char * argv[] )
 
 	Plib::Network::Connection::Async( _req, onSuccess, global_onFailed );
 	*/
-
-	Reference< NcRequest > _req;
-	_req->SetConnectInfo( "pushchen.com", 80 );
-	_req->AppendBody( _string );
-	Connection::sendAsyncRequest( &(*_req) );
+	if ( 1 ) {
+		Request _req( new NcRequest );
+		((NcRequest *)_req)->SetConnectInfo( "pushchen.com", 80 );
+		((NcRequest *)_req)->AppendBody( _string );
+		Connection::sendAsyncRequest( _req );
+	}
 
 	// PeerInfo remotePeer;
 	// remotePeer.Address = "127.0.0.1";

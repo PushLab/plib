@@ -23,10 +23,14 @@ namespace Plib
 	namespace Network
 	{
 		// The socket interface
-		struct ISocket
+		class ISocket
 		{
+		public:
 			// The socket handler
 			SOCKET_T						m_hSocket;
+
+			ISocket():m_hSocket(INVALIDATE_SOCKET){}
+			ISocket(SOCKET_T hSo): m_hSocket(hSo) { }
 
 			virtual ~ISocket() {}
 
@@ -94,9 +98,6 @@ namespace Plib
 			PeerInfo 						m_remoteInfo;
 			Uint32							m_localPort;
 
-		public:
-			SOCKET_T						m_hSocket;
-
 		protected:
 			void _getSocketInfo( )
 			{
@@ -118,8 +119,8 @@ namespace Plib
 
 		public:
 			// Structure
-			Socket< _TyConnect, _TyWrite, _TyRead >( ) : m_hSocket(INVALIDATE_SOCKET) {}
-			Socket< _TyConnect, _TyWrite, _TyRead >( SOCKET_T hSo ) : m_hSocket( hSo )
+			Socket< _TyConnect, _TyWrite, _TyRead >( ) {}
+			Socket< _TyConnect, _TyWrite, _TyRead >( SOCKET_T hSo ) : ISocket( hSo )
 			{
 				if ( SOCKET_NOT_VALIDATE(hSo) ) return;
 				this->_getSocketInfo( );
@@ -200,7 +201,7 @@ namespace Plib
 			bool SetLingerTime( unsigned int _time )
 			{
 				if ( m_hSocket == INVALIDATE_SOCKET ) return false;
-				linger _lnger = { (_time > 0 ? 1 : 0), _time };
+				linger _lnger = { (_time > 0 ? 1 : 0), static_cast<int>(_time) };
 				return setsockopt( m_hSocket, SOL_SOCKET, SO_LINGER,
 					(const char*)&_lnger, sizeof(linger) ) != -1;
 			}
