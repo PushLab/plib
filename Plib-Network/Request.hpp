@@ -196,19 +196,6 @@ namespace Plib
 			}
 			
 			// Point Simulation.
-			/*
-			template< typename T >
-			INLINE T & operator * ( )
-			{
-				return static_cast<T>*( _refHandler->m_reqHandler );
-			}
-			
-			INLINE const _TyInternal & operator * ( ) const 
-			{
-				return *( _refHandler->m_reqHandler );
-			}
-			*/
-
 			INLINE IRequest * operator -> ( )
 			{
 				return _refHandler->m_reqHandler;

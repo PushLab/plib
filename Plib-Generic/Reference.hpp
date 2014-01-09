@@ -215,15 +215,16 @@ namespace Plib
 				return _Handle->_PHandle;
 			}
 
-			INLINE const operator _TyInternal * () const
-			{
-				return _Handle->_PHandle;
-			}
+			// It's not safe to explore the internal point.
+			// INLINE const operator _TyInternal * () const
+			// {
+			// 	return _Handle->_PHandle;
+			// }
 
-			INLINE operator _TyInternal * ()
-			{
-				return _Handle->_PHandle;
-			}
+			// INLINE operator _TyInternal * ()
+			// {
+			// 	return _Handle->_PHandle;
+			// }
 			
 			// Reference Check Statue.
 			INLINE bool RefNull( ) const {
