@@ -11,3 +11,10 @@
 *.lai
 *.la
 *.a
+
+# Folder
+Test
+
+.tags
+.tags_sorted_by_file
+.tags*

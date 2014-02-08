@@ -459,20 +459,20 @@ namespace Plib
 				FormatWriteSimple_( LLV_FATAL, PLIB_FUNC_NAME, __LINE__, format, __VA_ARGS__ )
 				
 				
-			#define TraceHex( _data, _length )	\
-				HexLogSimple_( LLV_TRACE, PLIB_FUNC_NAME, __LINE__, _data, _length )
-			#define DebugHex( _data, _length )	\
-				HexLogSimple_( LLV_DEBUG, PLIB_FUNC_NAME, __LINE__, _data, _length )
-			#define NotifyHex( _data, _length )	\
-				HexLogSimple_( LLV_NOTIFY, PLIB_FUNC_NAME, __LINE__, _data, _length )
-			#define InfoHex( _data, _length )	\
-				HexLogSimple_( LLV_INFO, PLIB_FUNC_NAME, __LINE__, _data, _length )
-			#define WarnHex( _data, _length )	\
-				HexLogSimple_( LLV_WARN, PLIB_FUNC_NAME, __LINE__, _data, _length )
-			#define ErrorHex( _data, _length )	\
-				HexLogSimple_( LLV_ERROR, PLIB_FUNC_NAME, __LINE__, _data, _length )
-			#define FatalHex( _data, _length )	\
-				HexLogSimple_( LLV_FATAL, PLIB_FUNC_NAME, __LINE__, _data, _length )
+			#define TraceHex( prefix, _data, _length )	\
+				HexLogSimple_( LLV_TRACE, PLIB_FUNC_NAME, __LINE__, prefix, _data, _length )
+			#define DebugHex( prefix, _data, _length )	\
+				HexLogSimple_( LLV_DEBUG, PLIB_FUNC_NAME, __LINE__, prefix, _data, _length )
+			#define NotifyHex( prefix, _data, _length )	\
+				HexLogSimple_( LLV_NOTIFY, PLIB_FUNC_NAME, __LINE__, prefix, _data, _length )
+			#define InfoHex( prefix, _data, _length )	\
+				HexLogSimple_( LLV_INFO, PLIB_FUNC_NAME, __LINE__, prefix, _data, _length )
+			#define WarnHex( prefix, _data, _length )	\
+				HexLogSimple_( LLV_WARN, PLIB_FUNC_NAME, __LINE__, prefix, _data, _length )
+			#define ErrorHex( prefix, _data, _length )	\
+				HexLogSimple_( LLV_ERROR, PLIB_FUNC_NAME, __LINE__, prefix, _data, _length )
+			#define FatalHex( prefix, _data, _length )	\
+				HexLogSimple_( LLV_FATAL, PLIB_FUNC_NAME, __LINE__, prefix, _data, _length )
 		#else
 			#define LTrace			Trace_ << "[" << __FILE__ << "][" << \
 										PLIB_FUNC_NAME << "][" << __LINE__ << "]"
@@ -506,20 +506,20 @@ namespace Plib
 				FormatWriteBasic_( LLV_FATAL, __FILE__, PLIB_FUNC_NAME, __LINE__, format, __VA_ARGS__ )
 		
 				
-			#define TraceHex( _data, _length )	\
-				HexLogSimple_( LLV_TRACE, __FILE__, PLIB_FUNC_NAME, __LINE__, _data, _length )
-			#define DebugHex( _data, _length )	\
-				HexLogSimple_( LLV_DEBUG, __FILE__, PLIB_FUNC_NAME, __LINE__, _data, _length )
-			#define NotifyHex( _data, _length )	\
-				HexLogSimple_( LLV_NOTIFY, __FILE__, PLIB_FUNC_NAME, __LINE__, _data, _length )
-			#define InfoHex( _data, _length )	\
-				HexLogSimple_( LLV_INFO, __FILE__, PLIB_FUNC_NAME, __LINE__, _data, _length )
-			#define WarnHex( _data, _length )	\
-				HexLogSimple_( LLV_WARN, __FILE__, PLIB_FUNC_NAME, __LINE__, _data, _length )
-			#define ErrorHex( _data, _length )	\
-				HexLogSimple_( LLV_ERROR, __FILE__, PLIB_FUNC_NAME, __LINE__, _data, _length )
-			#define FatalHex( _data, _length )	\
-				HexLogSimple_( LLV_FATAL, __FILE__, PLIB_FUNC_NAME, __LINE__, _data, _length )
+			#define TraceHex( prefix, _data, _length )	\
+				HexLogBasic_( LLV_TRACE, __FILE__, PLIB_FUNC_NAME, __LINE__, prefix, _data, _length )
+			#define DebugHex( prefix, _data, _length )	\
+				HexLogBasic_( LLV_DEBUG, __FILE__, PLIB_FUNC_NAME, __LINE__, prefix, _data, _length )
+			#define NotifyHex( prefix, _data, _length )	\
+				HexLogBasic_( LLV_NOTIFY, __FILE__, PLIB_FUNC_NAME, __LINE__, prefix, _data, _length )
+			#define InfoHex( prefix, _data, _length )	\
+				HexLogBasic_( LLV_INFO, __FILE__, PLIB_FUNC_NAME, __LINE__, prefix, _data, _length )
+			#define WarnHex( prefix, _data, _length )	\
+				HexLogBasic_( LLV_WARN, __FILE__, PLIB_FUNC_NAME, __LINE__, prefix, _data, _length )
+			#define ErrorHex( prefix, _data, _length )	\
+				HexLogBasic_( LLV_ERROR, __FILE__, PLIB_FUNC_NAME, __LINE__, prefix, _data, _length )
+			#define FatalHex( prefix, _data, _length )	\
+				HexLogBasic_( LLV_FATAL, __FILE__, PLIB_FUNC_NAME, __LINE__, prefix, _data, _length )
 				
 		#endif
 	}

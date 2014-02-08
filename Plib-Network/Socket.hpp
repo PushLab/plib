@@ -51,7 +51,7 @@ namespace Plib
 				int idleLoopCount = 5 ) = 0;
 
 			// Close the connection of the socket
-			void Close( )
+			virtual void Close( )
 			{
 				if ( SOCKET_NOT_VALIDATE(m_hSocket) ) return;
 				PLIB_NETWORK_CLOSESOCK(m_hSocket);

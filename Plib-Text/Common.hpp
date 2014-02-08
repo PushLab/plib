@@ -156,7 +156,8 @@ namespace Plib
 				_BufferLine[ _cPerLine * 3 + _addrSize + 1] = '|';
 				_BufferLine[ _bufferSize - 3 ] = '|';
 				_BufferLine[ _bufferSize - 2 ] = '\0';
-				printf( "%s\n", _BufferLine );
+				std::cout << _BufferLine << std::endl;
+				// printf( "%s\n", _BufferLine );
 			}
 		}
 		
