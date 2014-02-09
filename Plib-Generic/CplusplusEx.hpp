@@ -26,7 +26,7 @@ namespace Plib
 		struct __constant {
 			static const T value = v;
 			typedef T value_type;
-			const operator value_type() const { return value; }
+			operator const value_type() const { return value; }
 			const value_type operator()() const { return value; }
 		};
 
