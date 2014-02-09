@@ -131,7 +131,7 @@ namespace Plib
 						return INVALIDATE_SOCKET;
 					}
 					struct timeval _tm = { _timeOut / 1000, 
-						static_cast<__darwin_suseconds_t>((_timeOut % 1000) * 1000) };
+						static_cast<long>((_timeOut % 1000) * 1000) };
 					fd_set _fs;
 					int _error = 0, len = sizeof(_error);
 					FD_ZERO( &_fs );
@@ -182,7 +182,7 @@ namespace Plib
 						(const char *)&writeTimeout, sizeof(Uint32) );
 #else
 					struct timeval wtv = { writeTimeout / 1000, 
-						static_cast<__darwin_suseconds_t>((writeTimeout % 1000) * 1000) };
+						static_cast<long>((writeTimeout % 1000) * 1000) };
 					setsockopt(hSo, SOL_SOCKET, SO_SNDTIMEO, 
 						(const char *)&wtv, sizeof(struct timeval));
 #endif
@@ -231,7 +231,7 @@ namespace Plib
 				NData _readBuffer;
 
 				struct timeval _tv = { (long)readTimeout / 1000, 
-					static_cast<__darwin_suseconds_t>(((long)readTimeout % 1000) * 1000) };
+					static_cast<long>(((long)readTimeout % 1000) * 1000) };
 				fd_set recvFs;
 				FD_ZERO( &recvFs );
 				FD_SET( hSo, &recvFs );
