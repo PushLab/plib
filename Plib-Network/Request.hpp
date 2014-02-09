@@ -19,12 +19,15 @@
 #include <Plib-Network/BasicNetwork.hpp>
 #include <Plib-Network/PeerInfo.hpp>
 #include <Plib-Network/Response.hpp>
+#include <Plib-Generic/Generic.hpp>
 
 namespace Plib
 {
 	namespace Network
 	{
 		using Plib::Text::String;
+		using Plib::Generic::Enable_If;
+		using Plib::Generic::Is_Convertible;
 
 		// Request Interface, which is an ABC
 		class IRequest
@@ -209,7 +212,7 @@ namespace Plib
 			template<typename T> operator T *()
 			{
 				return static_cast<
-					typename std::enable_if< 
+					typename Enable_If< 
 						std::is_convertible<T*, IRequest*>::value,
 						T
 					>::type*
@@ -218,7 +221,7 @@ namespace Plib
 			template<typename T> operator const T *() const
 			{
 				return static_cast<
-					typename std::enable_if< 
+					typename Enable_If< 
 						std::is_convertible<T*, IRequest*>::value,
 						T
 					>::type*

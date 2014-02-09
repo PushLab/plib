@@ -16,6 +16,7 @@
 #ifndef _PLIB_GENERIC_GENERIC_HPP_
 #define _PLIB_GENERIC_GENERIC_HPP_
 
+#include <Plib-Generic/CplusplusEx.hpp>
 #include <Plib-Generic/Dequeue.hpp>
 #include <Plib-Generic/Queue.hpp>
 #include <Plib-Generic/Stack.hpp>

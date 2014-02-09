@@ -34,8 +34,8 @@ namespace Plib
 		using Plib::Text::String;
 		using Plib::Threading::Mutex;
 		using Plib::Threading::Semaphore;
-		using std::enable_if;
-		using std::is_convertible;
+		// using std::enable_if;
+		// using std::is_convertible;
 
 		// Typedef
 		typedef Plib::Generic::Delegate< void ( const Request & ) > tReqSuccess;
