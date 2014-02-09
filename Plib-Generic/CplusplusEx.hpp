@@ -21,6 +21,18 @@ namespace Plib
 {
 	namespace Generic
 	{
+
+		template < class T, T v >
+		struct __constant {
+			static const T value = v;
+			typedef T value_type;
+			const operator value_type() const { return value; }
+			const value_type operator()() const { return value; }
+		};
+
+		typedef __constant< bool, true > _True;
+		typedef __constant< bool, false > _False;
+
 		// Enable If 
 #if __cplusplus > 199711L
 		template< bool B, class T = void >
@@ -41,8 +53,22 @@ namespace Plib
 		template< class From, class To >
 		struct Is_Convertible
 		{
-			enum { value = }
-			operator bool () { }
+			typedef unsigned char __false_type;
+			typedef unsigned int  __true_type;
+
+			static From __from;
+
+			template < typename T > struct _checker {
+				static __false_type _do_check( ... );
+				static __true_type _do_check(T);
+			};
+			static const bool value = __constant< bool, ( 
+				sizeof(_checker<To>::_do_check(__from)) ==
+				sizeof(__true_type)
+				) 
+			>::value;
+			
+			operator bool() const { return value; }
 		};
 #endif
 	}

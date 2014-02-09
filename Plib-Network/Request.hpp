@@ -213,7 +213,7 @@ namespace Plib
 			{
 				return static_cast<
 					typename Enable_If< 
-						std::is_convertible<T*, IRequest*>::value,
+						Is_Convertible<T*, IRequest*>::value,
 						T
 					>::type*
 				>(_refHandler->m_reqHandler);
@@ -222,7 +222,7 @@ namespace Plib
 			{
 				return static_cast<
 					typename Enable_If< 
-						std::is_convertible<T*, IRequest*>::value,
+						Is_Convertible<T*, IRequest*>::value,
 						T
 					>::type*
 				>(_refHandler->m_reqHandler);
