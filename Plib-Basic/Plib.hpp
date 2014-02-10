@@ -90,6 +90,7 @@
 // Linux Thread, pit_t
 #if _DEF_LINUX
 #include <sys/syscall.h>
+#include <unistd.h>
 #define gettid()	syscall(__NR_gettid)
 #endif
 
