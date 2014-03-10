@@ -19,6 +19,12 @@
 #include <Plib-Text/File.hpp>
 #include <Plib-Threading/Threading.hpp>
 
+#ifdef PLIB_LOCK_DEBUG
+#define LOGGER_LOCK		Threading::Locker _lock( __LogLocker, PLIB_FUNC_NAME );
+#else
+#define LOGGER_LOCK		Threading::Locker _lock( __LogLocker );
+#endif
+
 namespace Plib
 {
 	namespace Text
@@ -253,15 +259,13 @@ namespace Plib
 			void __FlushLogData( ) 
 			{
 				// Switch the buffer.
-				__LogLocker.Lock( );
-				if ( __Buffer.Size() == 0 ) {
-					__LogLocker.UnLock( );
-					return;
-				}
-				String __Temp = __Buffer;
-				__Buffer = __FlushString;
-				__FlushString = __Temp;
-				__LogLocker.UnLock( );
+				do {
+					LOGGER_LOCK
+					if ( __Buffer.Size() == 0 ) return;
+					String __Temp = __Buffer;
+					__Buffer = __FlushString;
+					__FlushString = __Temp;
+				} while ( false );
 				
 				// Write to the file
 				// Check the time and the file size.
@@ -287,7 +291,7 @@ namespace Plib
 			}
 			
 			void __AppendLogLine( const String & _data ) {
-				Threading::Locker _lock( __LogLocker );
+				LOGGER_LOCK
 				__Buffer += _data;
 			}
 			
@@ -295,7 +299,7 @@ namespace Plib
 			// Default Logger C'Str, LogLevel is INFO, Max File Size 
 			// is 100MB, Each 24 hours split the file.
 			Logger_<_dummy>( ) : 
-				__Level( LLV_INFO ), 
+				__Level( LLV_TRACE ), 
 				__MaxBytes( 1024 * 1024 * 100 ), 
 				__SplitInterval( 60 * 60 * 24 ),
 				__CurrentSize( 0 ),
@@ -313,7 +317,7 @@ namespace Plib
 				//__FlushTimer.SetEnable( true );
 			}
 			
-			~Logger_<_dummy>( ) { __FlushLogData( ); }
+			~Logger_<_dummy>( ) { __FlushTimer.SetEnable( false ); __FlushLogData( ); }
 			
 			INLINE void SetFlushTimer( bool _enable ) {
 				__FlushTimer.SetEnable( _enable );
@@ -366,7 +370,7 @@ namespace Plib
 				_Line->Format( __format, _length, pArgList );
 				va_end( pArgList );
 				
-				Threading::Locker _lock( __LogLocker );
+				LOGGER_LOCK
 				__WriteLineHead( _llv, __func, __line );
 				__Buffer += _Line;
 				__Buffer += "\r\n";
@@ -391,7 +395,7 @@ namespace Plib
 				_Line->Format( __format, _length, pArgList );
 				va_end( pArgList );
 				
-				Threading::Locker _lock( __LogLocker );
+				LOGGER_LOCK
 				__WriteLineHead( _llv, __file, __func, __line );
 				__Buffer += _Line;
 				__Buffer += "\r\n";
@@ -404,7 +408,7 @@ namespace Plib
 			{
 				if ( !__LevelApprove( _llv ) ) return;
 				
-				Threading::Locker _lock( __LogLocker );
+				LOGGER_LOCK
 				__WriteLineHead( _llv, __func, __line );
 				__Buffer += _Prefix;
 				__Buffer += "\r\n";
@@ -417,7 +421,7 @@ namespace Plib
 			{
 				if ( !__LevelApprove( _llv ) ) return;
 				
-				Threading::Locker _lock( __LogLocker );
+				LOGGER_LOCK
 				__WriteLineHead( _llv, __file, __func, __line );
 				__Buffer += _Prefix;
 				__Buffer += "\r\n";

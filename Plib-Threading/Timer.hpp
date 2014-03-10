@@ -93,7 +93,7 @@ namespace Plib
 			template < typename _TyIns >
 			Timer & operator += ( std::pair<_TyIns *, void(_TyIns::*)() > _p )
 			{
-				Locker _Lock( _TickMutex );
+				Locker _Lock( _TickMutex);
 				_OnTick += _p;
 				return (*this);
 			}

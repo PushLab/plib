@@ -110,7 +110,7 @@
 #define PERROR( _Words )	Plib::Text::Logger::GLog.LError << _Words << Plib::Text::Logger::Endl
 #define PFATAL( _Words )	Plib::Text::Logger::GLog.LFatal << _Words << Plib::Text::Logger::Endl
 #define PDUMP( _Dump )		Plib::Text::Logger::GLog.LTrace << "{" #_Dump "}" << \
-								Plib::Utility::Convert::ToString(_Dump) << Plib::Text::Logger::Endl
+								Plib::Text::Convert::ToString(_Dump) << Plib::Text::Logger::Endl
 #define PIF( _Exp )			if ( _Exp )
 #define PELSEIF( _Exp )		else if ( _Exp )
 #define PELSE				else

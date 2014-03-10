@@ -112,6 +112,9 @@
 // undef the following macro
 #define PLIB_BASIC_THREAD_SAFE
 
+// undef the following macro to use simple function name in debug.
+#define _PLIB_FULL_FUNCNAME
+
 // If you do not want to use memory pool
 // just comment the following macro
 //#define PLIB_USE_MEMPOOL
@@ -160,6 +163,29 @@ namespace Plib
     #define VALUE_INCREASED( x )	(x)++
     #define VALUE_DECREASED( x )	(x)--
 
+// Function and error.
+#if _DEF_WIN32
+
+  #define _PLIB_FUNC_NAME_FULL_ __FUNCSIG__
+  #define _PLIB_FUNC_NAME_SIMPLE_   __FUNCTION__
+
+  #define PLIB_LASTERROR    GetLastError()
+
+#else
+
+  #define _PLIB_FUNC_NAME_FULL_ __PRETTY_FUNCTION__
+  #define _PLIB_FUNC_NAME_SIMPLE_ __FUNCTION__
+
+  #define PLIB_LASTERROR    errno   
+
+#endif
+
+#ifdef _PLIB_FULL_FUNCNAME
+  #define PLIB_FUNC_NAME    _PLIB_FUNC_NAME_FULL_
+#else
+  #define PLIB_FUNC_NAME    _PLIB_FUNC_NAME_SIMPLE_
+#endif
+
     // Base Locker Object.
     template < typename _TyLocker >
     class LockerT
@@ -169,18 +195,30 @@ namespace Plib
         const char *_func_name_;
 #endif
     public:
-        LockerT( _TyLocker & _l ) : _lock( _l ) { _lock.Lock(); }
+        LockerT( _TyLocker & _l ) : _lock( _l )
+#ifdef PLIB_LOCK_DEBUG
+        , _func_name_(NULL)
+#endif
+        { 
+            _lock.Lock(); 
+        }
 #ifdef PLIB_LOCK_DEBUG
         LockerT( _TyLocker & _l, const char *_func ) : _lock( _l ), _func_name_(_func) {
-            printf("%s try to lock.\n", _func_name_);
+            if ( _func_name_ != NULL ) {
+                std::cout << _func_name_ << " try to lock." << std::endl;
+            }
             _lock.Lock();
-            printf("%s locked.\n", _func_name_);
+            if ( _func_name_ != NULL ) {
+                std::cout << _func_name_ << " locked." << std::endl;
+            }
         }
 #endif
         ~LockerT( ) { 
             _lock.UnLock(); 
 #ifdef PLIB_LOCK_DEBUG
-            printf("%s unlocked.\n", _func_name_);
+            if ( _func_name_ != NULL ) {
+                std::cout << _func_name_ << " unlocked." << std::endl;
+            }
 #endif
         }
     };
@@ -291,7 +329,7 @@ namespace Plib
 // LOCK MACRO, Wrap The LockerT.
 #ifdef PLIB_BASIC_THREAD_SAFE
 #ifdef PLIB_LOCK_DEBUG
-    #define SPINLOCK( _lock )       Plib::LockerT< Plib::SpinLocker > CHAR_CONNECT(__lock, __LINE__)( _lock, __FUNCTION__)
+    #define SPINLOCK( _lock )       Plib::LockerT< Plib::SpinLocker > CHAR_CONNECT(__lock, __LINE__)( _lock, PLIB_FUNC_NAME)
 #else
     #define SPINLOCK( _lock )		Plib::LockerT< Plib::SpinLocker > CHAR_CONNECT(__lock, __LINE__)( _lock )
 #endif
@@ -383,28 +421,6 @@ namespace Plib
 #define PLIB_LOG_FORMAT_SIMPLE	UNICODE_("[%s][%u][%s][%d]")
 // Log Postfix Fomat: [YYYY-mm-dd-HH-MM-SS]
 #define PLIB_TIME_FORMAT_POSTFIX UNICODE_("%04d-%02d-%02d-%02d-%02d-%02d")
-// Function and error.
-#if _DEF_WIN32
-
-  #define _PLIB_FUNC_NAME_FULL_	__FUNCSIG__
-  #define _PLIB_FUNC_NAME_SIMPLE_	__FUNCTION__
-
-  #define PLIB_LASTERROR	GetLastError()
-
-#else
-
-  #define _PLIB_FUNC_NAME_FULL_	__PRETTY_FUNCTION__
-  #define _PLIB_FUNC_NAME_SIMPLE_ __FUNCTION__
-
-  #define PLIB_LASTERROR	errno	
-
-#endif
-
-#ifdef _PLIB_FULL_FUNCNAME
-  #define PLIB_FUNC_NAME	_PLIB_FUNC_NAME_FULL_
-#else
-  #define PLIB_FUNC_NAME	_PLIB_FUNC_NAME_SIMPLE_
-#endif
 
 
 }
