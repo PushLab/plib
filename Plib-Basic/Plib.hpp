@@ -165,9 +165,24 @@ namespace Plib
     class LockerT
     {
         _TyLocker & _lock;
+#ifdef PLIB_LOCK_DEBUG
+        const char *_func_name_;
+#endif
     public:
         LockerT( _TyLocker & _l ) : _lock( _l ) { _lock.Lock(); }
-        ~LockerT( ) { _lock.UnLock(); }
+#ifdef PLIB_LOCK_DEBUG
+        LockerT( _TyLocker & _l, const char *_func ) : _lock( _l ), _func_name_(_func) {
+            printf("%s try to lock.\n", _func_name_);
+            _lock.Lock();
+            printf("%s locked.\n", _func_name_);
+        }
+#endif
+        ~LockerT( ) { 
+            _lock.UnLock(); 
+#ifdef PLIB_LOCK_DEBUG
+            printf("%s unlocked.\n", _func_name_);
+#endif
+        }
     };
 
     // Spin Lock In Both Windows and linux.
@@ -275,7 +290,11 @@ namespace Plib
 
 // LOCK MACRO, Wrap The LockerT.
 #ifdef PLIB_BASIC_THREAD_SAFE
-#define SPINLOCK( _lock )			Plib::LockerT< Plib::SpinLocker > CHAR_CONNECT(__lock, __LINE__)( _lock )
+#ifdef PLIB_LOCK_DEBUG
+    #define SPINLOCK( _lock )       Plib::LockerT< Plib::SpinLocker > CHAR_CONNECT(__lock, __LINE__)( _lock, __FUNCTION__)
+#else
+    #define SPINLOCK( _lock )		Plib::LockerT< Plib::SpinLocker > CHAR_CONNECT(__lock, __LINE__)( _lock )
+#endif
 #define PLIB_THREAD_SAFE_DEFINE		mutable Plib::SpinLocker __THREAD_SAFE_SPINLOCK
 #define PLIB_THREAD_SAFE			SPINLOCK( __THREAD_SAFE_SPINLOCK )
 #define PLIB_SUBCLASS_THREAD_SAFE	SPINLOCK( TFather::__THREAD_SAFE_SPINLOCK )
