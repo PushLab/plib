@@ -285,8 +285,7 @@ namespace Plib
 			Thread< _TyRet( DEF_TYPE(n) ) > ( ) { _INIT_THREAD_OBJECT( _ThreadObj ); }		\
 			Thread< _TyRet( DEF_TYPE(n) ) > ( const ThreadStarter & _Ts )					\
 				: Jobs( _Ts ) { _INIT_THREAD_OBJECT(_ThreadObj); }							\
-			~Thread< _TyRet( DEF_TYPE(n) ) >( ) { Stop();									\
-				ThreadKernel::EndThread( &_ThreadObj ); }									\
+			~Thread< _TyRet( DEF_TYPE(n) ) >( ) { Stop(); }									\
 		public:																				\
 			INLINE bool Statue( ) const														\
 			{																				\
@@ -363,7 +362,7 @@ namespace Plib
 			{
 				_INIT_THREAD_OBJECT( _ThreadObj);
 			}
-			~Thread< _TyRet( ) >( ) { Stop(); ThreadKernel::EndThread( &_ThreadObj ); }
+			~Thread< _TyRet( ) >( ) { Stop(); }
 		public:
 			INLINE bool Statue( ) const
 			{
