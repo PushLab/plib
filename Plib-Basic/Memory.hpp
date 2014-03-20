@@ -65,48 +65,48 @@ namespace Plib
 
 	#define PMALLOC( _Type, _Obj, _Size )												\
 		_Obj = (_Type *)malloc( (_Size ) );												\
-		Plib::Basic::memd_print_( _Obj, _PLIB_FUNC_NAME_SIMPLE_, __LINE__, 				\
+		Plib::Basic::memd_print_( _Obj, _PLIB_FUNC_NAME_FULL_, __LINE__, 				\
 				STATEMENT_TO_STRING( _Obj = (_Type *)malloc(_Size)) )
 	#define PCMALLOC( _Type, _Obj, _Size ) 												\
 		_Type * _Obj = (_Type *)malloc( (_Size) );										\
-		Plib::Basic::memd_print_( _Obj, _PLIB_FUNC_NAME_SIMPLE_, __LINE__, 				\
+		Plib::Basic::memd_print_( _Obj, _PLIB_FUNC_NAME_FULL_, __LINE__, 				\
 				STATEMENT_TO_STRING( _Type * _Obj = (_Type *)malloc(_Size)) )
 	#define PCREALLOC( _Type, _Source, _Obj, _Size ) 									\
 		_Type * _Obj = (_Type *)realloc( _Source, (_Size) );							\
-		Plib::Basic::memd_print_( _Obj, _PLIB_FUNC_NAME_SIMPLE_, __LINE__,				\
+		Plib::Basic::memd_print_( _Obj, _PLIB_FUNC_NAME_FULL_, __LINE__,				\
 				STATEMENT_TO_STRING(_Type * _Obj = (_Type *)realloc(_Source, _Size)))
 	#define PFREE( _Obj )																\
 		free( _Obj );																	\
-		Plib::Basic::memd_print_( _Obj, _PLIB_FUNC_NAME_SIMPLE_, __LINE__,				\
+		Plib::Basic::memd_print_( _Obj, _PLIB_FUNC_NAME_FULL_, __LINE__,				\
 				STATEMENT_TO_STRING( free(_Obj) ) )
 
 	#define PNEW( _Type, _Obj )															\
 		_Obj = new _Type;																\
-		Plib::Basic::memd_print_( _Obj, _PLIB_FUNC_NAME_SIMPLE_, __LINE__,				\
+		Plib::Basic::memd_print_( _Obj, _PLIB_FUNC_NAME_FULL_, __LINE__,				\
 				STATEMENT_TO_STRING( _Obj = new _Type ) )
 	#define PNEWPARAM( _Type, _Obj, _Param )											\
 		_Obj = new _Type( _Param );														\
-		Plib::Basic::memd_print_( _Obj, _PLIB_FUNC_NAME_SIMPLE_, __LINE__,				\
+		Plib::Basic::memd_print_( _Obj, _PLIB_FUNC_NAME_FULL_, __LINE__,				\
 				STATEMENT_TO_STRING( _Obj = new _Type( _Param ) ) )
 	#define PCNEW( _Type, _Obj ) 														\
 		_Type * _Obj = new _Type;														\
-		Plib::Basic::memd_print_( _Obj, _PLIB_FUNC_NAME_SIMPLE_, __LINE__,				\
+		Plib::Basic::memd_print_( _Obj, _PLIB_FUNC_NAME_FULL_, __LINE__,				\
 				STATEMENT_TO_STRING( _Type * _Obj = new _Type ) )
 	#define PCNEWPARAM( _Type, _Obj, _Param )											\
 		_Type * _Obj = new _Type( _Param );												\
-		Plib::Basic::memd_print_( _Obj, _PLIB_FUNC_NAME_SIMPLE_, __LINE__,				\
+		Plib::Basic::memd_print_( _Obj, _PLIB_FUNC_NAME_FULL_, __LINE__,				\
 				STATEMENT_TO_STRING( _Type * _Obj = new _Type( _Param ) ) )
 	#define PDELETE( _Obj ) 															\
 		delete _Obj;																	\
-		Plib::Basic::memd_print_( _Obj, _PLIB_FUNC_NAME_SIMPLE_, __LINE__,				\
+		Plib::Basic::memd_print_( _Obj, _PLIB_FUNC_NAME_FULL_, __LINE__,				\
 				STATEMENT_TO_STRING( delete _Obj ) )
 	#define PNEWARRAY( _Type, _Obj, _Size ) 											\
 		_Obj = new _Type[_Size];														\
-		Plib::Basic::memd_print_( _Obj, _PLIB_FUNC_NAME_SIMPLE_, __LINE__,				\
+		Plib::Basic::memd_print_( _Obj, _PLIB_FUNC_NAME_FULL_, __LINE__,				\
 				STATEMENT_TO_STRING( _Obj = new _Type[_Size] )
 	#define PDELETEARRAY( _Obj )														\
 		delete [] _Obj;																	\
-		Plib::Basic::memd_print_( _Obj, _PLIB_FUNC_NAME_SIMPLE_, __LINE__,				\
+		Plib::Basic::memd_print_( _Obj, _PLIB_FUNC_NAME_FULL_, __LINE__,				\
 				STATEMENT_TO_STRING( delete [] _Obj )
 
 #else

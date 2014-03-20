@@ -1,0 +1,12 @@
+#! /bin/bash
+
+folder=$(pwd)
+plibfolders=$(ls | grep Plib)
+
+cd /usr/local/include
+for f in $plibfolders; do
+	if [ -d $f ]; then
+		rm $f
+	fi
+	ln -s $folder/$f $f
+done

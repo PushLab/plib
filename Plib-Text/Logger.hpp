@@ -95,7 +95,7 @@ namespace Plib
 
 			protected:
 				// The Father Logger Object.
-				Logger_< _dummy > * 			__Logger;
+				Logger_< _dummy > * 		__Logger;
 				LOGLEVEL					__Level;
 				bool 						__Locked;
 				Plib::Threading::Mutex		__Locker;
@@ -261,7 +261,9 @@ namespace Plib
 				// Switch the buffer.
 				do {
 					LOGGER_LOCK
-					if ( __Buffer.Size() == 0 ) return;
+					if ( __Buffer.Size() == 0 ) {
+						return;
+					}
 					String __Temp = __Buffer;
 					__Buffer = __FlushString;
 					__FlushString = __Temp;

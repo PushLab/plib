@@ -45,11 +45,15 @@ namespace Plib
 		};
 		
 		INLINE void __HandleSignal( int _Sig ) {
-			if (SIGTERM == _Sig || SIGINT == _Sig || SIGQUIT == _Sig) 
+			if (SIGTERM == _Sig || SIGINT == _Sig || SIGQUIT == _Sig) {
 				__GlobalSignal::__WaitFor().Release();			
+			}
 		}
 		INLINE void SetSignalHandle( ) {
 			// Hook the signal
+#ifdef __APPLE__
+			signal(SIGINT, __HandleSignal);
+#else
 			sigset_t sgset, osgset;
 			sigfillset(&sgset);
 			sigdelset(&sgset, SIGTERM);
@@ -59,7 +63,8 @@ namespace Plib
 			sigprocmask(SIG_SETMASK, &sgset, &osgset);
 			signal(SIGTERM, __HandleSignal);
 			signal(SIGINT, __HandleSignal);
-			signal(SIGQUIT, __HandleSignal);			
+			signal(SIGQUIT, __HandleSignal);	
+#endif		
 		}
 		INLINE void WaitForExitSignal( )
 		{

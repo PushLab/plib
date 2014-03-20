@@ -53,7 +53,11 @@ namespace Plib
 					_StopWatch.Tick( );
 					Uint64 _LeftTime = _Interval - (_StopWatch.GetMileSecUsed() % _Interval);
 					_TickMutex.UnLock();
-					ThreadSys::WaitForSignal( (Uint32)_LeftTime );
+
+					// If we get any signal, just break and return
+					if ( ThreadSys::WaitForSignal( (Uint32)_LeftTime ) ) {
+						break;
+					}
 				}
 			}
 
