@@ -130,6 +130,9 @@ namespace Plib
 			static INLINE bool BeginThread( void * _Thread, LPTHREAD_OBJECT _ThreadObj, 
 				CreateTRetVal_T (_THREAD_CALLBACK * _CallBack)(void *) )
 			{
+				if ( _Thread == NULL ) return false;
+				if ( _ThreadObj == NULL ) return false;
+				if ( _CallBack == NULL ) return false;
 				WriteLocker tgLock( ThreadGlobalLock() );
 				Uint32 _ss = _ThreadObj->_StackSize == 0 ? 
 					ThreadInfo::GetStackSize() : _ThreadObj->_StackSize;
