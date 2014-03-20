@@ -118,7 +118,7 @@ namespace Plib
 #define PCREALLOC( _Type, _Source, _Obj, _Size ) \
 		_Type * _Obj = (_Type *)realloc( _Source, (_Size) )
 #define PFREE( _Obj )	\
-		free( _Obj )
+		free( _Obj ); _Obj = NULL
 
 #define PNEW( _Type, _Obj )	\
 		_Obj = new _Type
@@ -129,11 +129,11 @@ namespace Plib
 #define PCNEWPARAM( _Type, _Obj, _Param ) \
 		_Type * _Obj = new _Type( _Param )
 #define PDELETE( _Obj )	\
-		delete _Obj
+		delete _Obj; _Obj = NULL
 #define PNEWARRAY( _Type, _Obj, _Size ) \
 		_Obj = new _Type[_Size]
 #define PDELETEARRA(_Obj) \
-		delete [] _Obj
+		delete [] _Obj; _Obj = NULL
 
 #endif
 	}
