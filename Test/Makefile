@@ -52,7 +52,7 @@ AR	 = ar
 STATIC_LIBS = 
 DYNAMIC_LIBS = 
 EXECUTABLE = 
-TEST_CASE = reqt
+TEST_CASE = reqt pdns
 
 RELAY_OBJECT = 
 
@@ -103,4 +103,7 @@ withpg : PreProcess $(STATIC_LIBS) $(DYNAMIC_LIBS) $(EXECUTABLE) $(TEST_CASE) Af
 
 reqt : RequestTest.o
 	g++ -o reqt $(TEST_ROOT)/RequestTest.cpp $(CXXFLAGS)
+
+pdns : pdns.o
+	g++ -o pdns $(TEST_ROOT)/pdns.cpp $(CXXFLAGS)
 
