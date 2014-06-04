@@ -4,39 +4,30 @@
 #
 
 PLIB_ROOT = ../
-DEV_LIB = $(PLIB_ROOT)/
-REL_LIB = $(PLIB_ROOT)/
 TEST_ROOT = ./
 
 OUT_DIR = $(TEST_ROOT)/output
 
-PLIB_DEFINES = -DLINUX -DPLIB -DVERSION=\"1.0.0.0\" -std=c++11
+PLIB_DEFINES = -v -DPLIB -DVERSION=\"1.0.0.0\" #-std=c++11
 
 ifeq "$(MAKECMDGOALS)" "release"
 	DEFINES = $(PLIB_DEFINES) -DPLIB_RELEASE -DPLIB_USE_MEMPOOL -DPLIB_LOG_DEBUG_
 	CPPFLAGS = 
-	CFLAGS = -O2 -Wall $(DEFINES) -I$(REL_LIB) -fPIC -pthread
-	CXXFLAGS = -O2 -Wall $(DEFINES) -I$(REL_LIB) -fPIC -pthread
+	CFLAGS = -O2 -Wall $(DEFINES) -fPIC -pthread
+	CXXFLAGS = -O2 -Wall $(DEFINES) -fPIC -pthread
 	CMDGOAL_DEF := $(MAKECMDGOALS)
 else
 	ifeq "$(MAKECMDGOALS)" "withpg"
-		DEFINES = $(PLIB_DEFINES) -DPLIB_WITHPG -D_PLIB_ERR_DEBUG_ -DPLIB_MEMORY_DEBUG -DPLIB_OBJECT_DEBUG
+		DEFINES = $(PLIB_DEFINES) -DPLIB_WITHPG -DDEBUG -D_PLIB_ERR_DEBUG_ -DPLIB_MEMORY_DEBUG -DPLIB_OBJECT_DEBUG
 		CPPFLAGS = 
-		CFLAGS = -g -pg -Wall $(DEFINES) -I$(DEV_LIB) -fPIC -pthread
-		CXXFLAGS = -g -pg -Wall $(DEFINES) -I$(DEV_LIB) -fPIC -pthread
-		CMDGOAL_DEF := $(MAKECMDGOALS)
-	endif
-	ifeq "$(MAKECMDGOALS)" "debug"
-		DEFINES = $(PLIB_DEFINES) -DPLIB_DEBUG -D_PLIB_STD_DEBUG_ #-DPLIB_MEMORY_DEBUG #-DPLIB_LOCK_DEBUG
-		CPPFLAGS = 
-		CFLAGS = -g -Wall $(DEFINES) -I$(DEV_LIB) -fPIC -pthread
-		CXXFLAGS = -g -Wall $(DEFINES) -I$(DEV_LIB) -fPIC -pthread
+		CFLAGS = -g -pg -Wall $(DEFINES) -fPIC -pthread
+		CXXFLAGS = -g -pg -Wall $(DEFINES) -fPIC -pthread
 		CMDGOAL_DEF := $(MAKECMDGOALS)
 	else
-		DEFINES = $(PLIB_DEFINES) -DPLIB_DEBUG -D_PLIB_STD_DEBUG_ -DPLIB_LOCK_DEBUG #-DPLIB_MEMORY_DEBUG
+		DEFINES = $(PLIB_DEFINES) -DPLIB_DEBUG -D_PLIB_STD_DEBUG_ -DPLIB_LOCK_DEBUG -DDEBUG
 		CPPFLAGS =
-		CFLAGS = -g -Wall $(DEFINES) -I$(DEV_LIB) -fPIC -pthread
-		CXXFLAGS = -g -Wall $(DEFINES) -I$(DEV_LIB) -fPIC -pthread
+		CFLAGS = -g -Wall $(DEFINES) -fPIC -pthread
+		CXXFLAGS = -g -Wall $(DEFINES) -fPIC -pthread
 		CMDGOAL_DEF := $(MAKECMDGOALS)
 	endif
 endif
@@ -73,24 +64,8 @@ cmdgoalError :
 	@echo '******You must specified a make command goal.******'
 	@echo '***************************************************'
 
-debugclean :
-	@rm -rf $(TEST_ROOT)/debug
-
-relclean :
-	@rm -rf $(TEST_ROOT)/release
-
-pgclean : 
-	@rm -rf $(TEST_ROOT)/withpg
-
 clean : 
 	$(shell rm -rf $(OUT_DIR))
-
-AfterMake : 
-	$(shell rm -rf *.o)
-	$(shell if [ -x "$(STATIC_LIBS)" ]; then mv $(STATIC_LIBS) $(OUT_DIR)/static; fi)
-	$(shell if [ -x "$(DYNAMIC_LIBS)" ]; then mv $(DYNAMIC_LIBS) $(OUT_DIR)/dynamic; fi)
-	$(shell if [ "$(EXECUTABLE)" != "" ]; then mv -vf $(EXECUTABLE) $(OUT_DIR)/bin; fi)
-	$(shell if [ -x "$(TEST_CASE)" ]; then mv $(TEST_CASE) $(OUT_DIR)/test; fi)
 
 debug : PreProcess $(STATIC_LIBS) $(DYNAMIC_LIBS) $(EXECUTABLE) $(TEST_CASE) AfterMake
 	@exit 0
@@ -101,9 +76,33 @@ release : PreProcess $(STATIC_LIBS) $(DYNAMIC_LIBS) $(EXECUTABLE) $(TEST_CASE) A
 withpg : PreProcess $(STATIC_LIBS) $(DYNAMIC_LIBS) $(EXECUTABLE) $(TEST_CASE) AfterMake
 	@exit 0
 
-reqt : RequestTest.o
-	g++ -o reqt $(TEST_ROOT)/RequestTest.cpp $(CXXFLAGS)
+AfterMake : 
+	rm -rf *.o
+	static_libs="$(STATIC_LIBS)" && \
+    if [ "${static_libs}" != "" ]; then \
+        for slib in $${static_libs}; do \
+            mv $$slib $(OUT_DIR)/static; \
+        done; \
+    fi
+	dynamic_libs="$(DYNAMIC_LIBS)" && \
+    if [ "${dynamic_libs}" != "" ]; then \
+        for dlib in $${dynamic_libs}; do \
+            mv $$dlib $(OUT_DIR)/dynamic; \
+        done; \
+    fi
+	executable="$(EXECUTABLE)" && \
+	if [ "$${executable}" != "" ]; then \
+	    for exc in $${executable}; do \
+	        mv $$exc $(OUT_DIR)/bin; \
+	    done; \
+	fi
+	test_case="$(TEST_CASE)" && \
+	if [ "$${test_case}" != "" ]; then \
+		for tcase in $${test_case}; do \
+		    mv $$tcase $(OUT_DIR)/test; \
+		done; \
+	fi
 
-pdns : pdns.o
-	g++ -o pdns $(TEST_ROOT)/pdns.cpp $(CXXFLAGS)
+reqt : RequestTest.o
+	$(CPP) -o reqt $(TEST_ROOT)/RequestTest.cpp $(CXXFLAGS)
 

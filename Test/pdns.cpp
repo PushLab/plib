@@ -13,7 +13,7 @@ using namespace Plib::Network;
 using namespace Plib::Utility;
 using namespace std;
 
-#pragma pack 1
+#pragma pack(push, 1)
 struct dnsPackage {
     Uint16          transactionId;
     struct {
@@ -31,8 +31,68 @@ struct dnsPackage {
     Uint16          nsCount;
     Uint16          arCount;
 };
+#pragma pack(pop)
+
+SOCKET_T            gSvrSockTcp;
+SOCKET_T            gSvrSockUdp;
+
+void getTcpConnection()
+{
+    TcpSocket _ssvr(gSvrSockTcp);
+    while ( ThreadSys::Running() ) {
+        if ( _ssvr.isReadable() == false ) continue;
+        struct sockaddr_in _sockInfoClient;
+        int _len = 0;
+        SOCKET_T _clt = accept(gSvrSockTcp, (struct sockaddr *)&_sockInfoClient, (socklen_t *)&_len);
+        if ( _clt == -1 ) continue;
+        TcpSocket _sclt(_clt);
+        // Try to read the package...
+        // Redirect...
+        // Write back...
+    }
+}
+
+void getUdpConnection()
+{
+
+}
 
 int main( int argc, char * argv[] ) {
-    cout << sizeof(dnsPackage) << endl;
+    // Wait for exit
+    SetSignalHandle();
+
+    Uint32 _svrPort = 1053;
+    // Start to build the socket for both tcp and udp
+    struct sockaddr_in _sockAddrTcp, _sockAddrUdp;
+
+    // Create Socket
+    gSvrSockTcp = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    cout << gSvrSockTcp << endl;
+    gSvrSockUdp = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    cout << gSvrSockUdp << endl;
+
+    memset((char *)&_sockAddrTcp, 0, sizeof(_sockAddrTcp));
+    memset((char *)&_sockAddrUdp, 0, sizeof(_sockAddrUdp));
+
+    _sockAddrUdp.sin_family = AF_INET;
+    _sockAddrUdp.sin_port = htons(_svrPort);
+    _sockAddrUdp.sin_addr.s_addr = htonl(INADDR_ANY);
+    if ( bind(gSvrSockUdp, (struct sockaddr *)&_sockAddrUdp, sizeof(_sockAddrUdp)) == -1 ) {
+        cout << "failed to bind udp" << endl;
+    }
+
+    _sockAddrTcp.sin_family = AF_INET;
+    _sockAddrTcp.sin_port = htons(_svrPort);
+    _sockAddrTcp.sin_addr.s_addr = htonl(INADDR_ANY);
+    if ( bind(gSvrSockTcp, (struct sockaddr *)&_sockAddrTcp, sizeof(_sockAddrTcp)) == -1 ) {
+        cout << "failed to bind tcp" << endl;
+    }
+    if ( -1 == listen(gSvrSockTcp, 0) ) {
+        cout << "failed to listen tcp" << endl;
+    }
+
+    // Start listen thread
+
+    WaitForExitSignal();
     return 0;
 }
