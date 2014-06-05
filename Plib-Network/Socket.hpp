@@ -59,24 +59,24 @@ namespace Plib
 			}
 
 			// Socket status
-			bool isReadable( ) const
+			bool isReadable( Uint32 waitTime = 0 ) const
 			{
 				if ( m_hSocket == INVALIDATE_SOCKET ) return false;
-				HSOCKETSTATUE _result = TcpSocketStatus()(m_hSocket, HSO_CHECK_READ);
+				HSOCKETSTATUE _result = TcpSocketStatus()(m_hSocket, HSO_CHECK_READ, waitTime);
 				return _result == HSO_OK;
 			}
 
-			bool isWriteable( ) const 
+			bool isWriteable( Uint32 waitTime = 0 ) const 
 			{
 				if ( m_hSocket == INVALIDATE_SOCKET ) return false;
-				HSOCKETSTATUE _result = TcpSocketStatus()(m_hSocket, HSO_CHECK_WRITE);
+				HSOCKETSTATUE _result = TcpSocketStatus()(m_hSocket, HSO_CHECK_WRITE, waitTime);
 				return _result == HSO_OK;
 			}
 
-			bool isConnected( ) const
+			bool isConnected( Uint32 waitTime = 0 ) const
 			{
 				if ( m_hSocket == INVALIDATE_SOCKET ) return false;
-				HSOCKETSTATUE _result = TcpSocketStatus()(m_hSocket, HSO_CHECK_CONNECT);
+				HSOCKETSTATUE _result = TcpSocketStatus()(m_hSocket, HSO_CHECK_CONNECT, waitTime);
 				return _result != HSO_INVALIDATE;
 			}
 		};

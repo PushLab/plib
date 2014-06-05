@@ -4,6 +4,7 @@
 #include <Plib-Text/Text.hpp>
 #include <Plib-Threading/Threading.hpp>
 #include <Plib-Network/Network.hpp>
+#include <poll.h>
 
 using namespace Plib;
 using namespace Plib::Generic;
@@ -39,14 +40,27 @@ SOCKET_T            gSvrSockUdp;
 void getTcpConnection()
 {
     TcpSocket _ssvr(gSvrSockTcp);
+    _ssvr.SetReUsable(true);
+    struct pollfd _svrfd;
     while ( ThreadSys::Running() ) {
-        if ( _ssvr.isReadable() == false ) continue;
+
+        if ( _ssvr.isReadable(100) == false ) {
+            //PDEBUG( "no connection..." );
+            continue;
+        }
+        PINFO("new incoming connection via tcp.");
         struct sockaddr_in _sockInfoClient;
         int _len = 0;
         SOCKET_T _clt = accept(gSvrSockTcp, (struct sockaddr *)&_sockInfoClient, (socklen_t *)&_len);
+        PINFO("client socket: " << _clt);
         if ( _clt == -1 ) continue;
         TcpSocket _sclt(_clt);
+        _sclt.SetReUsable(true);
+        PINFO("clinet info: " << _sclt.RemotePeerInfo() );
         // Try to read the package...
+        NData _data = _sclt.Read();
+        PrintAsHex(_data);
+        _sclt.Close();
         // Redirect...
         // Write back...
     }
@@ -87,12 +101,15 @@ int main( int argc, char * argv[] ) {
     if ( bind(gSvrSockTcp, (struct sockaddr *)&_sockAddrTcp, sizeof(_sockAddrTcp)) == -1 ) {
         cout << "failed to bind tcp" << endl;
     }
-    if ( -1 == listen(gSvrSockTcp, 0) ) {
+    if ( -1 == listen(gSvrSockTcp, 100) ) {
         cout << "failed to listen tcp" << endl;
     }
 
     // Start listen thread
+    Thread<void ()> _tcpWorker = Thread<void()>(getTcpConnection);
+    _tcpWorker.Start();
 
     WaitForExitSignal();
+    _tcpWorker.Stop();
     return 0;
 }

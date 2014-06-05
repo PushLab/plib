@@ -41,14 +41,14 @@ namespace Plib
 		class TcpSocketStatus
 		{
 		public:
-			HSOCKETSTATUE operator() ( SOCKET_T hSo, HSOCKETOPT option = HSO_CHECK_READ ) const
+			HSOCKETSTATUE operator() ( SOCKET_T hSo, HSOCKETOPT option = HSO_CHECK_READ, Uint32 waitTime = 0 ) const
 			{
 				if ( SOCKET_NOT_VALIDATE(hSo) ) return HSO_INVALIDATE;
 				fd_set _fs;
 				FD_ZERO( &_fs );
 				FD_SET( hSo, &_fs );
 
-				int _ret = 0; struct timeval _tv = {0, 0};
+				int _ret = 0; struct timeval _tv = {waitTime / 1000, waitTime % 1000 * 1000};
 
 				if ( option & HSO_CHECK_READ ) {
 					do {
