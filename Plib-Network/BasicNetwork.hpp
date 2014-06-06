@@ -49,6 +49,19 @@
  */
 namespace Plib {
     namespace Network {
+
+        typedef enum {
+            HSO_INVALIDATE  = -1,
+            HSO_IDLE        = 0,
+            HSO_OK          = 1
+        } HSOCKETSTATUE;
+
+        typedef enum {
+            HSO_CHECK_WRITE     = 1,
+            HSO_CHECK_READ      = 2,
+            HSO_CHECK_CONNECT   = 4
+        } HSOCKETOPT;
+        
 		typedef long SOCKET_T;
 		#ifndef INVALIDATE_SOCKET
 		#define INVALIDATE_SOCKET			((long)((long)0 - (long)1))

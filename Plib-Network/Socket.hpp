@@ -16,7 +16,9 @@
 #ifndef _PLIB_NETWORK_SOCKET_HPP_
 #define _PLIB_NETWORK_SOCKET_HPP_
 
+#include <Plib-Generic/Generic.hpp>
 #include <Plib-Network/TcpSocket.hpp>
+#include <Plib-Network/UdpSocket.hpp>
 
 namespace Plib
 {
@@ -26,8 +28,10 @@ namespace Plib
 		class ISocket
 		{
 		public:
+			typedef Plib::Generic::Delegate< HSOCKETSTATUE(SOCKET_T,HSOCKETOPT,Uint32) >	_TChecker;
 			// The socket handler
 			SOCKET_T						m_hSocket;
+			_TChecker 						m_statChk;
 
 			ISocket():m_hSocket(INVALIDATE_SOCKET){}
 			ISocket(SOCKET_T hSo): m_hSocket(hSo) { }
@@ -62,21 +66,21 @@ namespace Plib
 			bool isReadable( Uint32 waitTime = 0 ) const
 			{
 				if ( m_hSocket == INVALIDATE_SOCKET ) return false;
-				HSOCKETSTATUE _result = TcpSocketStatus()(m_hSocket, HSO_CHECK_READ, waitTime);
+				HSOCKETSTATUE _result = m_statChk(m_hSocket, HSO_CHECK_READ, waitTime);
 				return _result == HSO_OK;
 			}
 
 			bool isWriteable( Uint32 waitTime = 0 ) const 
 			{
 				if ( m_hSocket == INVALIDATE_SOCKET ) return false;
-				HSOCKETSTATUE _result = TcpSocketStatus()(m_hSocket, HSO_CHECK_WRITE, waitTime);
+				HSOCKETSTATUE _result = m_statChk(m_hSocket, HSO_CHECK_WRITE, waitTime);
 				return _result == HSO_OK;
 			}
 
 			bool isConnected( Uint32 waitTime = 0 ) const
 			{
 				if ( m_hSocket == INVALIDATE_SOCKET ) return false;
-				HSOCKETSTATUE _result = TcpSocketStatus()(m_hSocket, HSO_CHECK_CONNECT, waitTime);
+				HSOCKETSTATUE _result = m_statChk(m_hSocket, HSO_CHECK_CONNECT, waitTime);
 				return _result != HSO_INVALIDATE;
 			}
 		};
@@ -97,6 +101,7 @@ namespace Plib
 
 			PeerInfo 						m_remoteInfo;
 			Uint32							m_localPort;
+			struct sockaddr_in				m_sockAddr;
 
 		protected:
 			void _getSocketInfo( )
@@ -112,6 +117,11 @@ namespace Plib
 					m_localPort = ntohs(_addr.sin_port);
 				}
 			}
+
+			void _initStatusChecker() {
+				typename _TyConnect::SocketStatusChecker _chker;
+				m_statChk = _TChecker(_chker);
+			}
 		public:
 			// Properties
 			virtual const PeerInfo & RemotePeerInfo( ) const { return m_remoteInfo; }
@@ -119,9 +129,10 @@ namespace Plib
 
 		public:
 			// Structure
-			Socket< _TyConnect, _TyWrite, _TyRead >( ) {}
+			Socket< _TyConnect, _TyWrite, _TyRead >( ) { this->_initStatusChecker(); }
 			Socket< _TyConnect, _TyWrite, _TyRead >( SOCKET_T hSo ) : ISocket( hSo )
 			{
+				this->_initStatusChecker();
 				if ( SOCKET_NOT_VALIDATE(hSo) ) return;
 				this->_getSocketInfo( );
 				idleTimer.SetStart();
@@ -135,7 +146,7 @@ namespace Plib
 			virtual bool Connect( const PeerInfo & peerInfo )
 			{
 				if ( !SOCKET_NOT_VALIDATE(m_hSocket) ) this->Close( );
-				m_hSocket = _TyConnect()(peerInfo);
+				m_hSocket = _TyConnect()(peerInfo, m_sockAddr);
 				if ( !SOCKET_NOT_VALIDATE(m_hSocket) ) {
 					idleTimer.SetStart();
 					this->_getSocketInfo();
@@ -146,7 +157,7 @@ namespace Plib
 
 			virtual int Write( const NData & data, Uint32 timeout = 1000 )
 			{
-				int _ret = _TyWrite()(m_hSocket, data, timeout);
+				int _ret = _TyWrite()(m_hSocket, m_sockAddr, data, timeout);
 				idleTimer.SetStart();
 				if ( _ret == -1 ) this->Close();
 				return _ret;
@@ -154,7 +165,7 @@ namespace Plib
 
 			virtual NData Read( Uint32 timeout = 1000, bool waitUntilTimeout = false, int idleLoopCount = _TyRead::IdleLoopCount )
 			{
-				NData _buffer = _TyRead()(m_hSocket, timeout, waitUntilTimeout, idleLoopCount);
+				NData _buffer = _TyRead()(m_hSocket, m_sockAddr, timeout, waitUntilTimeout, idleLoopCount);
 				idleTimer.SetStart();
 				if ( _buffer.RefNull() ) this->Close();
 				return _buffer;
@@ -184,6 +195,13 @@ namespace Plib
 					TCP_NODELAY, (const char *)&flag, sizeof(int) ) != -1;
  			}
 
+ 			bool SetReadTimeOut( unsigned int _milleseconds ) 
+ 			{
+ 				if ( m_hSocket == INVALIDATE_SOCKET ) return false;
+ 				struct timeval _tv = { _milleseconds / 1000, _milleseconds % 1000 * 1000 };
+ 				return setsockopt( m_hSocket, SOL_SOCKET, SO_RCVTIMEO, &_tv, sizeof(_tv) ) != -1;
+ 			}
+
 			bool SetWriteBufferSize( unsigned int _size )
 			{
 				if ( m_hSocket == INVALIDATE_SOCKET ) return false;
@@ -208,6 +226,7 @@ namespace Plib
 		};
 
 		typedef Socket< >		TcpSocket;
+		typedef Socket< UdpSocketConnect, UdpSocketWrite, UdpSocketRead >	UdpSocket;
 	
 		template <typename _TyConnect, typename _TyWrite, typename _TyRead>
 		std::ostream & operator << ( std::ostream & os, const Socket< _TyConnect, _TyWrite, _TyRead > & sock )

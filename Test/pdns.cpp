@@ -41,34 +41,69 @@ void getTcpConnection()
 {
     TcpSocket _ssvr(gSvrSockTcp);
     _ssvr.SetReUsable(true);
-    struct pollfd _svrfd;
+    struct pollfd *_svrfd = (struct pollfd *)calloc(1, sizeof(struct pollfd));
+    size_t _nfds = 1;   // number of fd
+    _svrfd->events = POLLIN | POLLPRI;
+    _svrfd->fd = gSvrSockTcp;
+    int _ret = 0;
     while ( ThreadSys::Running() ) {
+        _ret = poll( _svrfd, _nfds, 100 );
+        if ( _ret == -1 ) {
+            PERROR( "Server connection has been dropped." );
+            break;
+        }
 
-        if ( _ssvr.isReadable(100) == false ) {
-            //PDEBUG( "no connection..." );
+        if ( _svrfd->revents == 0 ) {
+            // No incoming socket
             continue;
         }
-        PINFO("new incoming connection via tcp.");
-        struct sockaddr_in _sockInfoClient;
-        int _len = 0;
-        SOCKET_T _clt = accept(gSvrSockTcp, (struct sockaddr *)&_sockInfoClient, (socklen_t *)&_len);
-        PINFO("client socket: " << _clt);
-        if ( _clt == -1 ) continue;
-        TcpSocket _sclt(_clt);
-        _sclt.SetReUsable(true);
-        PINFO("clinet info: " << _sclt.RemotePeerInfo() );
-        // Try to read the package...
-        NData _data = _sclt.Read();
-        PrintAsHex(_data);
-        _sclt.Close();
-        // Redirect...
-        // Write back...
+        if ( _svrfd->revents & POLLIN ) {
+            PINFO("New incoming socket.");
+            struct sockaddr_in _sockInfoClient;
+            int _len = 0;
+            SOCKET_T _clt = accept(gSvrSockTcp, (struct sockaddr *)&_sockInfoClient, (socklen_t *)&_len);
+            PINFO("client socket: " << _clt);
+            if ( _clt == -1 ) continue;
+            TcpSocket _sclt(_clt);
+            _sclt.SetReUsable(true);
+            PINFO("clinet info: " << _sclt.RemotePeerInfo() );
+            // Try to read the package...
+            NData _data = _sclt.Read();
+            PrintAsHex(_data);
+            _sclt.Close();
+            // Redirect...
+            // Write back...
+        }
     }
+    PINFO("Will stop tcp connection worker");
+    _ssvr.Close();
 }
 
 void getUdpConnection()
 {
-
+    UdpSocket _ssvr(gSvrSockUdp);
+    _ssvr.SetReadTimeOut( 100 );
+    char _buffer[1024];
+    int _bLen = 1024;
+    while ( ThreadSys::Running() ) {
+        struct sockaddr_in _sockAddr;
+        socklen_t _sLen = sizeof(_sockAddr);
+        int _dataLen = ::recvfrom( gSvrSockUdp, _buffer, _bLen, 0,
+            (struct sockaddr *)&_sockAddr, &_sLen);
+        //PINFO("Data Len: " << _dataLen);
+        if ( _dataLen <= 0 ) continue;
+        _buffer[_dataLen] = '\0';
+        String _address = String::Parse("%u.%u.%u.%u",
+            (unsigned int)(_sockAddr.sin_addr.s_addr >> (0 * 8)) & 0x00FF,
+            (unsigned int)(_sockAddr.sin_addr.s_addr >> (1 * 8)) & 0x00FF,
+            (unsigned int)(_sockAddr.sin_addr.s_addr >> (2 * 8)) & 0x00FF,
+            (unsigned int)(_sockAddr.sin_addr.s_addr >> (3 * 8)) & 0x00FF );
+        PINFO("Incoming data..." << _address << ":" << ntohs(_sockAddr.sin_port));
+        ::sendto(gSvrSockUdp, _buffer, _dataLen, 0, (struct sockaddr *)&_sockAddr, _sLen);
+        PrintAsHex( _buffer, _dataLen );
+    }
+    PINFO("Will stop udp connection worker");
+    _ssvr.Close();
 }
 
 int main( int argc, char * argv[] ) {
@@ -81,9 +116,9 @@ int main( int argc, char * argv[] ) {
 
     // Create Socket
     gSvrSockTcp = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    cout << gSvrSockTcp << endl;
+    //cout << gSvrSockTcp << endl;
     gSvrSockUdp = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-    cout << gSvrSockUdp << endl;
+    //cout << gSvrSockUdp << endl;
 
     memset((char *)&_sockAddrTcp, 0, sizeof(_sockAddrTcp));
     memset((char *)&_sockAddrUdp, 0, sizeof(_sockAddrUdp));
@@ -100,16 +135,22 @@ int main( int argc, char * argv[] ) {
     _sockAddrTcp.sin_addr.s_addr = htonl(INADDR_ANY);
     if ( bind(gSvrSockTcp, (struct sockaddr *)&_sockAddrTcp, sizeof(_sockAddrTcp)) == -1 ) {
         cout << "failed to bind tcp" << endl;
+        return 1;
     }
     if ( -1 == listen(gSvrSockTcp, 100) ) {
         cout << "failed to listen tcp" << endl;
+        return 2;
     }
 
     // Start listen thread
     Thread<void ()> _tcpWorker = Thread<void()>(getTcpConnection);
     _tcpWorker.Start();
 
+    Thread<void ()> _udpWorker = Thread<void()>(getUdpConnection);
+    _udpWorker.Start();
+
     WaitForExitSignal();
     _tcpWorker.Stop();
+    _udpWorker.Stop();
     return 0;
 }

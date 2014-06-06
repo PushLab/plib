@@ -24,19 +24,6 @@ namespace Plib
 	namespace Network
 	{
 		// Socket action functions definitions
-
-		typedef enum {
-			HSO_INVALIDATE 	= -1,
-			HSO_IDLE 		= 0,
-			HSO_OK			= 1
-		} HSOCKETSTATUE;
-
-		typedef enum {
-			HSO_CHECK_WRITE		= 1,
-			HSO_CHECK_READ		= 2,
-			HSO_CHECK_CONNECT	= 4
-		} HSOCKETOPT;
-
 		// Status Checker
 		class TcpSocketStatus
 		{
@@ -79,8 +66,9 @@ namespace Plib
 		class TcpSocketConnect
 		{
 		public:
+			typedef TcpSocketStatus			SocketStatusChecker;
 			// 
-			SOCKET_T operator() ( const PeerInfo & peerInfo ) const {
+			SOCKET_T operator() ( const PeerInfo & peerInfo, struct sockaddr_in &sockAddr ) const {
 				if ( peerInfo.Address.Size() == 0 || peerInfo.Address == "0.0.0.0" || peerInfo.Port == 0 )
 					return INVALIDATE_SOCKET;
 				
@@ -109,11 +97,10 @@ namespace Plib
 					return INVALIDATE_SOCKET;
 				}
 
-				struct sockaddr_in _sockAddr;
-				memset( &_sockAddr, 0, sizeof(_sockAddr) );
-				_sockAddr.sin_addr.s_addr = _inAddr;
-				_sockAddr.sin_family = AF_INET;
-				_sockAddr.sin_port = htons(_port);
+				memset( &sockAddr, 0, sizeof(sockAddr) );
+				sockAddr.sin_addr.s_addr = _inAddr;
+				sockAddr.sin_family = AF_INET;
+				sockAddr.sin_port = htons(_port);
 
 				// Async Socket Connecting
 				if ( _timeOut > 0 )
@@ -123,8 +110,8 @@ namespace Plib
 				}
 
 				// Connect
-				if ( ::connect( hSo, (struct sockaddr *)&_sockAddr, 
-						sizeof(_sockAddr) ) == -1 )
+				if ( ::connect( hSo, (struct sockaddr *)&sockAddr, 
+						sizeof(sockAddr) ) == -1 )
 				{
 					if ( _timeOut == 0 ) {
 						PLIB_NETWORK_CLOSESOCK( hSo );
@@ -172,7 +159,10 @@ namespace Plib
 		class TcpSocketWrite
 		{
 		public:
-			int operator() ( SOCKET_T hSo, const NData & data, Uint32 writeTimeout = 1000 ) const
+            int operator() ( SOCKET_T hSo, 
+                             struct sockaddr_in &sockAddr,
+                             const NData & data, 
+                             Uint32 writeTimeout = 1000 ) const
 			{
 				if ( data.RefNull() ) return 0;
 				if ( SOCKET_NOT_VALIDATE(hSo) ) return -1;
@@ -222,8 +212,11 @@ namespace Plib
 		public:
 			enum { IdleLoopCount = 5, TcpSocketReadBufferSize = 512 };
 		public:
-			NData operator() ( SOCKET_T hSo, Uint32 readTimeout = 1000, 
-				bool waitUntilTimeout = false, bool idleLoopCount = IdleLoopCount ) const
+            NData operator() ( SOCKET_T hSo,
+                               struct sockaddr_in &sockAddr,
+                               Uint32 readTimeout = 1000, 
+                               bool waitUntilTimeout = false, 
+                               bool idleLoopCount = IdleLoopCount ) const
 			{
 				if ( SOCKET_NOT_VALIDATE(hSo) ) return NData::Null;
 
