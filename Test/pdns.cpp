@@ -70,6 +70,28 @@ void getTcpConnection()
             // Try to read the package...
             NData _data = _sclt.Read();
             PrintAsHex(_data);
+
+            struct dnsPackage _dnsPkg;
+            const char * _buffer = _data.c_str();
+            memcpy(&_dnsPkg, _buffer, sizeof(struct dnsPackage));
+            String _domain;
+            const char *_pDomain = _buffer + sizeof(struct dnsPackage);
+            for ( ;; ) {
+                Int8 _l = 0;
+                memcpy(&_l, _pDomain, sizeof(Int8));
+                //_l = ntohs(_l);
+                if ( _l == 0 ) {
+                    break;
+                }
+                _pDomain += sizeof(Int8);
+                if ( _domain.Size() > 0 ) {
+                    _domain.Append('.');
+                }
+                _domain.Append(_pDomain, _l);
+                _pDomain += _l;
+            }
+            PINFO("Is about lookup domain: " << _domain);
+
             _sclt.Close();
             // Redirect...
             // Write back...
@@ -98,9 +120,30 @@ void getUdpConnection()
             (unsigned int)(_sockAddr.sin_addr.s_addr >> (1 * 8)) & 0x00FF,
             (unsigned int)(_sockAddr.sin_addr.s_addr >> (2 * 8)) & 0x00FF,
             (unsigned int)(_sockAddr.sin_addr.s_addr >> (3 * 8)) & 0x00FF );
-        PINFO("Incoming data..." << _address << ":" << ntohs(_sockAddr.sin_port));
-        ::sendto(gSvrSockUdp, _buffer, _dataLen, 0, (struct sockaddr *)&_sockAddr, _sLen);
+        PINFO("Incoming udp data..." << _address << ":" << ntohs(_sockAddr.sin_port));
         PrintAsHex( _buffer, _dataLen );
+
+        struct dnsPackage _dnsPkg;
+        memcpy(&_dnsPkg, _buffer, sizeof(struct dnsPackage));
+        String _domain;
+        char *_pDomain = _buffer + sizeof(struct dnsPackage);
+        for ( ;; ) {
+            Int8 _l = 0;
+            memcpy(&_l, _pDomain, sizeof(Int8));
+            //_l = ntohs(_l);
+            if ( _l == 0 ) {
+                break;
+            }
+            _pDomain += sizeof(Int8);
+            if ( _domain.Size() > 0 ) {
+                _domain.Append('.');
+            }
+            _domain.Append(_pDomain, _l);
+            _pDomain += _l;
+        }
+        PINFO("Is about lookup domain: " << _domain);
+
+        ::sendto(gSvrSockUdp, _buffer, _dataLen, 0, (struct sockaddr *)&_sockAddr, _sLen);
     }
     PINFO("Will stop udp connection worker");
     _ssvr.Close();
@@ -110,7 +153,7 @@ int main( int argc, char * argv[] ) {
     // Wait for exit
     SetSignalHandle();
 
-    Uint32 _svrPort = 1053;
+    Uint32 _svrPort = 53;
     // Start to build the socket for both tcp and udp
     struct sockaddr_in _sockAddrTcp, _sockAddrUdp;
 
