@@ -107,8 +107,8 @@ int main ( int argc, char * argv[] )
 	PINFO( Identify::New() );
 
 	cout << boolalpha;
-	cout << is_convertible< IRequest *, IRequest * >::value << endl;
-	cout << is_convertible< NcRequest *, IRequest * >::value << endl;
+	//cout << is_convertible< IRequest *, IRequest * >::value << endl;
+	//cout << is_convertible< NcRequest *, IRequest * >::value << endl;
 	// What I want to write:
 	/*
 	SomeRequest _req(ServerAddress, ServerPort);
