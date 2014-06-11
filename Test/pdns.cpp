@@ -186,16 +186,54 @@ SOCKET_T            gSvrSockUdp;
 bool isDomainInBlacklist( Array<String> domainComs )
 {
     TBlackListNode *_blNode = gBlRoot;
+	// First: check root's contains
     for ( int i = domainComs.Size() - 1; i >= 0; --i ) {
         String _com = domainComs[i];
-        if ( _blNode->keys.find(_com) != _blNode->keys.end() ) {
+		PINFO("Check component: " << _com);
+        PIF ( _blNode->keys.find(_com) != _blNode->keys.end() ) {
             _blNode = _blNode->keys[_com];
             continue;
         }
         // Try to search suffix
-        // Try to search prefix
-        // Try to search contain
-        // If contains [everything]
+		bool _foundMatch = false;
+		for ( int s = 0; s < _blNode->suffixList.Size(); ++s ) {
+			PIF ( _com.EndWith( _blNode->suffixList[s].first ) ) {
+				_foundMatch = true;
+				_blNode = _blNode->suffixList[s].second;
+				// If current node is the leaf node, means everything is ok in this pattern
+				if ( *_blNode == false ) return true;
+				break;
+			}
+		}
+		PIF ( _foundMatch ) continue;
+		for ( int p = 0; p < _blNode->prefixList.Size(); ++p ) {
+			PIF ( _com.StartWith( _blNode->prefixList[p].first ) ) {
+				_foundMatch = true;
+				_blNode = _blNode->prefixList[p].second;
+				// If current node the leaf node, and no left components need to 
+				// be check, means ok.
+				if ( *_blNode == false && i == domainComs.Size() - 1 ) {
+					return true;
+				}
+				break;
+			}
+		}
+		PIF ( _foundMatch ) continue;
+		for ( int c = 0; c < _blNode->containList.Size(); ++c ) {
+			PIF ( _com.Find( _blNode->containList[c].first ) != String::NoPos ) {
+				_foundMatch = true;
+				_blNode = _blNode->containList[c].second;
+				// Same with suffix
+				if ( *_blNode == false ) return true;
+				break;
+			}
+		}
+		PIF ( _foundMatch ) continue;
+		PIF ( _blNode->everything != NULL ) {
+			return true;
+		}
+		// Find nothing
+		return false;
     }
     // If the node is leaf node, means match.
 	return (*_blNode) == false;
@@ -389,7 +427,23 @@ int main( int argc, char * argv[] ) {
             // Try to build the search tree.
             addPatternToBlackList( _configLine );
         }
-        cout << *gBlRoot << endl;
+        //cout << *gBlRoot << endl;
+		Array<String> _apiTwitterCom = String("api.twitter.com").Split(".");
+		PIF( isDomainInBlacklist(_apiTwitterCom) ) {
+			PINFO("Case 1 pass");
+		}
+		Array<String> _wwwGoogleCodeCom = String("www.googlecode.com").Split(".");
+		PIF( isDomainInBlacklist(_wwwGoogleCodeCom) ) {
+			PINFO("Case 2 pass");
+		}
+		Array<String> _twitterpicCom = String("twitterpic.com").Split(".");
+		PIF( !isDomainInBlacklist(_twitterpicCom ) ) {
+			PINFO("Case 3 pass");
+		}
+		Array<String> _wwwBaiduCom = String("www.baidu.com").Split(".");
+		PIF( !isDomainInBlacklist(_wwwBaiduCom) ) {
+			PINFO("Case 4 pass");
+		}
     }
 
     // Wait for exit
