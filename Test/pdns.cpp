@@ -37,6 +37,12 @@ struct dnsPackage {
 SOCKET_T            gSvrSockTcp;
 SOCKET_T            gSvrSockUdp;
 
+bool isDomainInBlacklist( Array<String> domainComs )
+{
+
+	return false;
+}
+
 void getTcpConnection()
 {
     TcpSocket _ssvr(gSvrSockTcp);
@@ -150,6 +156,16 @@ void getUdpConnection()
 }
 
 int main( int argc, char * argv[] ) {
+
+	// Try to parse the command line argument
+	String _blackListFilePath = "~/.pdns.baacklist";
+	String _localParentDns = "202.96.209.5";
+	String _blackParentDns = "8.8.8.8";
+
+	if ( argc >= 2 ) {
+
+	}
+
     // Wait for exit
     SetSignalHandle();
 
