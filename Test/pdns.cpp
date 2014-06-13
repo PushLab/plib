@@ -208,8 +208,8 @@ void udpRedirectWorker()
         gUdpMutex.UnLock();
 
         bool _needProxy = isDomainInBlacklist( _dnsReq.queryDomain );
-        //PINFO("query domain<" << _dnsReq.queryDomain << "> " << 
-        //    (_needProxy ? "need proxy" : "direct") );
+        // PINFO("query domain<" << _dnsReq.queryDomain << "> " << 
+        //     (_needProxy ? "need proxy" : "direct") );
         NData _result = NData::Null;
 
         if ( _needProxy == false ) {
@@ -224,6 +224,7 @@ void udpRedirectWorker()
                 _result = _udpSock.Read();
                 if ( _result == NData::Null ) continue;
                 socklen_t _sLen = sizeof(_dnsReq.clientAddr);
+                //PrintAsHex(_result);
                 ::sendto( gSvrSockUdp, _result.c_str(), _result.size(), 
                     0, (struct sockaddr *)&_dnsReq.clientAddr, _sLen);
                 break;
@@ -341,11 +342,11 @@ void getUdpConnection()
         //PINFO("Data Len: " << _dataLen);
         if ( _dataLen <= 0 ) continue;
         _buffer[_dataLen] = '\0';
-        String _address = String::Parse("%u.%u.%u.%u",
-            (unsigned int)(_sockAddr.sin_addr.s_addr >> (0 * 8)) & 0x00FF,
-            (unsigned int)(_sockAddr.sin_addr.s_addr >> (1 * 8)) & 0x00FF,
-            (unsigned int)(_sockAddr.sin_addr.s_addr >> (2 * 8)) & 0x00FF,
-            (unsigned int)(_sockAddr.sin_addr.s_addr >> (3 * 8)) & 0x00FF );
+        // String _address = String::Parse("%u.%u.%u.%u",
+        //     (unsigned int)(_sockAddr.sin_addr.s_addr >> (0 * 8)) & 0x00FF,
+        //     (unsigned int)(_sockAddr.sin_addr.s_addr >> (1 * 8)) & 0x00FF,
+        //     (unsigned int)(_sockAddr.sin_addr.s_addr >> (2 * 8)) & 0x00FF,
+        //     (unsigned int)(_sockAddr.sin_addr.s_addr >> (3 * 8)) & 0x00FF );
         // PINFO("Incoming udp data..." << _address << ":" << ntohs(_sockAddr.sin_port));
         // PrintAsHex( _buffer, _dataLen );
         NData _queryData = NData( _buffer, _dataLen );
@@ -384,7 +385,7 @@ int main( int argc, char * argv[] ) {
 
 	// Try to parse the command line argument
 	String _blackListFilePath = "~/.pdns.blacklist";
-	String _localParentDns = "202.96.209.5";
+	String _localParentDns = "202.96.209.133";
 	String _blackParentDns = "8.8.8.8";
 
 	if ( argc >= 2 ) {

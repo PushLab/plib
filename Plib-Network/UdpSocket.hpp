@@ -85,15 +85,6 @@ namespace Plib
                     return INVALIDATE_SOCKET;
                 }
                 
-                // Set With TCP_NODELAY
-                int flag = 1;
-                if ( setsockopt( hSo, IPPROTO_UDP, 
-                    TCP_NODELAY, (const char *)&flag, sizeof(int) ) == -1 )
-                {
-                    PLIB_NETWORK_CLOSESOCK( hSo );
-                    return INVALIDATE_SOCKET;
-                }
-
                 if ( peerInfo.Address.Size() == 0 || 
                      peerInfo.Address == "0.0.0.0" || 
                      peerInfo.Port == 0 )
@@ -184,7 +175,7 @@ namespace Plib
                     if ( _dataLen > 0 ) {
                         _result.Append( _buffer, _dataLen );
                     }
-                } while( _dataLen < UdpSocketReadBufferSize && _dataLen > 0 );
+                } while( _dataLen < UdpSocketReadBufferSize && _dataLen >= 0 );
 
                 return _result;
             }
