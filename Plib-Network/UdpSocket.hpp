@@ -87,7 +87,7 @@ namespace Plib
                 
                 // Set With TCP_NODELAY
                 int flag = 1;
-                if( setsockopt( hSo, IPPROTO_TCP, 
+                if ( setsockopt( hSo, IPPROTO_UDP, 
                     TCP_NODELAY, (const char *)&flag, sizeof(int) ) == -1 )
                 {
                     PLIB_NETWORK_CLOSESOCK( hSo );
@@ -139,7 +139,7 @@ namespace Plib
                     _lastSent = ::sendto(hSo, _data + _allSent, 
                         (_length - (unsigned int)_allSent), 0, 
                         (struct sockaddr *)&sockAddr, sizeof(sockAddr));
-                    if( _lastSent < 0 ) {
+                    if ( _lastSent < 0 ) {
                         // Failed to send
                         return _lastSent;
                     }
@@ -159,7 +159,7 @@ namespace Plib
         class UdpSocketRead
         {
         public:
-            enum { IdleLoopCount = 5, TcpSocketReadBufferSize = 512 };
+            enum { IdleLoopCount = 5, UdpSocketReadBufferSize = 512 };
         public:
             NData operator() ( SOCKET_T hSo,
                                struct sockaddr_in &sockAddr,
@@ -168,7 +168,25 @@ namespace Plib
                                bool idleLoopCount = IdleLoopCount ) const
             {
                 if ( SOCKET_NOT_VALIDATE(hSo) ) return NData::Null;
-                return NData::Null;
+
+                // Set the receive time out
+                struct timeval _tv = { readTimeout / 1000, readTimeout % 1000 * 1000 };
+                if ( setsockopt( hSo, SOL_SOCKET, SO_RCVTIMEO, &_tv, sizeof(_tv) ) == -1)
+                    return NData::Null;
+
+                char _buffer[UdpSocketReadBufferSize] = { 0 };
+                NData _result;
+                int _dataLen = 0;
+                do {
+                    socklen_t _sLen = sizeof(sockAddr);
+                    _dataLen = ::recvfrom( hSo, _buffer, UdpSocketReadBufferSize, 0,
+                        (struct sockaddr *)&sockAddr, &_sLen);
+                    if ( _dataLen > 0 ) {
+                        _result.Append( _buffer, _dataLen );
+                    }
+                } while( _dataLen < UdpSocketReadBufferSize && _dataLen > 0 );
+
+                return _result;
             }
         };
     }

@@ -309,8 +309,9 @@ void getUdpConnection()
             (unsigned int)(_sockAddr.sin_addr.s_addr >> (1 * 8)) & 0x00FF,
             (unsigned int)(_sockAddr.sin_addr.s_addr >> (2 * 8)) & 0x00FF,
             (unsigned int)(_sockAddr.sin_addr.s_addr >> (3 * 8)) & 0x00FF );
-        PINFO("Incoming udp data..." << _address << ":" << ntohs(_sockAddr.sin_port));
-        PrintAsHex( _buffer, _dataLen );
+        // PINFO("Incoming udp data..." << _address << ":" << ntohs(_sockAddr.sin_port));
+        // PrintAsHex( _buffer, _dataLen );
+        NData _queryData = NData( _buffer, _dataLen );
 
         struct dnsPackage _dnsPkg;
         memcpy(&_dnsPkg, _buffer, sizeof(struct dnsPackage));
@@ -330,8 +331,28 @@ void getUdpConnection()
             _domain.Append(_pDomain, _l);
             _pDomain += _l;
         }
-        PINFO("Is about lookup domain: " << _domain);
-
+        // PINFO("Is about lookup domain: " << _domain);
+        bool _needProxy = isDomainInBlacklist( _domain );
+        PINFO( _address << ":" << ntohs(_sockAddr.sin_port) << 
+            " query domain<" << _domain << "> " << 
+            (_needProxy ? "need proxy" : "direct") );
+        if ( _needProxy == false ) {
+            UdpSocket _udpSock;
+            PeerInfo _pi;
+            _pi.Address = "202.96.209.5";
+            _pi.Port = 53;
+            PINFO( "Try to query parent: " << _pi );
+            if ( _udpSock.Connect(_pi) ) {
+                if (_udpSock.Write(_queryData)) {
+                    NData _resp = _udpSock.Read();
+                    if ( _resp != String::Null ) {
+                        PrintAsHex( _resp.c_str(), _resp.size() );
+                        ::sendto( gSvrSockUdp, _resp.c_str(), _resp.Size(), 0, (struct sockaddr *)&_sockAddr, _sLen);
+                        continue;
+                    }
+                }
+            }
+        } 
         ::sendto(gSvrSockUdp, _buffer, _dataLen, 0, (struct sockaddr *)&_sockAddr, _sLen);
     }
     PINFO("Will stop udp connection worker");
@@ -410,35 +431,16 @@ int main( int argc, char * argv[] ) {
     } else {
         String _configLine = _blStream.ReadLine();
         for ( ; _configLine != String::Null; _configLine = _blStream.ReadLine() ) {
-            cout << _configLine << endl;
+            //cout << _configLine << endl;
             // Try to build the search tree.
             addPatternToBlackList( _configLine );
-        }
-        //cout << *gBlRoot << endl;
-		PIF ( isDomainInBlacklist("api.twitter.com") ) {
-			PINFO("Case 1 pass");
-		}
-		PIF( isDomainInBlacklist("www.googlecode.com") ) {
-			PINFO("Case 2 pass");
-		}
-		PIF( !isDomainInBlacklist("twitterpic.com" ) ) {
-			PINFO("Case 3 pass");
-		}
-		PIF( !isDomainInBlacklist("www.baidu.com") ) {
-			PINFO("Case 4 pass");
-		}
-        PIF( isDomainInBlacklist("twitter.com") ) {
-            PINFO("Case 5 pass");
-        }
-        PIF( !isDomainInBlacklist("twitter") ) {
-            PINFO("Case 6 pass");
         }
     }
 
     // Wait for exit
     SetSignalHandle();
 
-    Uint32 _svrPort = 1053;
+    Uint32 _svrPort = 53;
     // Start to build the socket for both tcp and udp
     struct sockaddr_in _sockAddrTcp, _sockAddrUdp;
 
