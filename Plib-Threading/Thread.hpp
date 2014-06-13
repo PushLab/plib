@@ -116,12 +116,14 @@ namespace Plib
 		{
 			// Global Map & Locker
 			static RWLock & ThreadGlobalLock() {
-				static RWLock _lock;
-				return _lock;
+				static RWLock *_lock = NULL;
+				if ( _lock == NULL ) _lock = new RWLock;
+				return *_lock;
 			}
 			static std::map< TID_T, LPTHREAD_OBJECT > & ThreadGlobalMap() {
-				static std::map< TID_T, LPTHREAD_OBJECT > _map;
-				return _map;
+				static std::map< TID_T, LPTHREAD_OBJECT > *_map = NULL;
+				if ( _map == NULL ) _map = new std::map< TID_T, LPTHREAD_OBJECT >;
+				return *_map;
 			}
 			// Try to start the thread call back function.
 			// In different operation system, this function active differently.

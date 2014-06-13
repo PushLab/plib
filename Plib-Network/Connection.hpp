@@ -231,8 +231,9 @@ namespace Plib
 
 			// Singleton Object
 			static Connection & self() {
-				static Connection _self;
-				return _self;
+				static Connection *_self = NULL;
+				if ( _self == NULL ) { _self = new Connection; }
+				return *_self;
 			}
 		public:
 			// Async Sending Request

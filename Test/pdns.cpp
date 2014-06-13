@@ -14,6 +14,7 @@ using namespace Plib::Network;
 using namespace Plib::Utility;
 using namespace std;
 
+// Black List Node
 struct TBlackListNode;
 typedef pair< String, TBlackListNode * >    TBlackItem;
 typedef map< String, TBlackListNode * >     TComKey;      
@@ -32,48 +33,7 @@ struct TBlackListNode
     TBlackListNode() : everything(NULL) {}
 };
 
-ostream & operator << ( ostream & os, const TBlackItem &item );
-ostream & operator << ( ostream & os, const TBlackListNode &node );
-
-ostream & operator << ( ostream & os, const TBlackItem &item )
-{
-    os << item.first << ": {" << *item.second << "}" << endl;
-    return os;
-}
-ostream & operator << ( ostream & os, const TBlackListNode &node )
-{
-    if ( node == false ) {
-        os << "LeafNode";
-    } else {
-        if ( node.prefixList.Size() ) {
-            os << "Prefix:" << endl;
-            for ( int i = 0; i < node.prefixList.Size(); ++i ) {
-                os << node.prefixList[i];
-            }
-        }
-        if ( node.suffixList.Size() ) {
-            os << "Suffix:" << endl;
-            for ( int i = 0; i < node.suffixList.Size(); ++i ) {
-                os << node.suffixList[i];
-            }
-        }
-        if ( node.containList.Size() ) {
-            os << "Contain:" << endl;
-            for ( int i = 0; i < node.containList.Size(); ++i ) {
-                os << node.containList[i];
-            }
-        }
-        if ( node.keys.size() ) {
-            for ( map<String, TBlackListNode *>::const_iterator _it = node.keys.begin();
-                _it != node.keys.end(); ++_it )
-            {
-                os << _it->first << ": " << *_it->second;
-            }
-        }
-    }
-    return os;
-}
-
+// Global Black List Root Node.
 TBlackListNode       *gBlRoot = NULL;
 
 void addPatternToBlackList( String pattern ) 
@@ -161,29 +121,6 @@ void addPatternToBlackList( String pattern )
     }
 }
 
-#pragma pack(push, 1)
-struct dnsPackage {
-    Uint16          transactionId;
-    struct {
-        Uint8       qr:1;
-        Uint8       opcode:4;
-        Uint8       aa:1;
-        Uint8       tc:1;
-        Uint8       rd:1;
-        Uint8       ra:1;
-        Uint8       z:3;
-        Uint8       rcode:4;
-    }               flags;
-    Uint16          qdCount;
-    Uint16          anCount;
-    Uint16          nsCount;
-    Uint16          arCount;
-};
-#pragma pack(pop)
-
-SOCKET_T            gSvrSockTcp;
-SOCKET_T            gSvrSockUdp;
-
 bool _isDomainInBlacklist( String domain, TBlackListNode *blNode )
 {
     if ( blNode == NULL && domain.Size() == 0 ) return true;
@@ -226,6 +163,116 @@ bool isDomainInBlacklist( String domain )
     return _isDomainInBlacklist( domain, gBlRoot );
 }
 
+#pragma pack(push, 1)
+struct dnsPackage {
+    Uint16          transactionId;
+    struct {
+        Uint8       qr:1;
+        Uint8       opcode:4;
+        Uint8       aa:1;
+        Uint8       tc:1;
+        Uint8       rd:1;
+        Uint8       ra:1;
+        Uint8       z:3;
+        Uint8       rcode:4;
+    }               flags;
+    Uint16          qdCount;
+    Uint16          anCount;
+    Uint16          nsCount;
+    Uint16          arCount;
+};
+#pragma pack(pop)
+
+SOCKET_T            gSvrSockTcp;
+SOCKET_T            gSvrSockUdp;
+Array<String>       gLocalDnsServer;
+Array<String>       gBlackDnsServer;
+
+// Udp Worker
+struct TUdpDnsRequest {
+    String                  queryDomain;
+    NData                   queryData;
+    struct sockaddr_in      clientAddr;
+};
+Queue< TUdpDnsRequest >     gUdpReqQueue;
+Semaphore                   gUdpSem;
+Mutex                       gUdpMutex;
+
+void udpRedirectWorker()
+{
+    while ( ThreadSys::Running() ) {
+        if ( gUdpSem.Get(100) == false ) continue;
+        gUdpMutex.Lock();
+        TUdpDnsRequest _dnsReq = gUdpReqQueue.Head();
+        gUdpReqQueue.Pop();
+        gUdpMutex.UnLock();
+
+        bool _needProxy = isDomainInBlacklist( _dnsReq.queryDomain );
+        //PINFO("query domain<" << _dnsReq.queryDomain << "> " << 
+        //    (_needProxy ? "need proxy" : "direct") );
+        NData _result = NData::Null;
+
+        if ( _needProxy == false ) {
+            for ( int i = 0; i < gLocalDnsServer.Size(); ++i ) {
+                UdpSocket _udpSock;
+                PeerInfo _dnsServerPeer;
+                _dnsServerPeer.Address = gLocalDnsServer[i];
+                _dnsServerPeer.Port = 53;
+                _dnsServerPeer.ConnectTimeOut = 500;
+                if ( _udpSock.Connect( _dnsServerPeer ) == false ) continue;
+                if ( _udpSock.Write( _dnsReq.queryData ) == false ) continue;
+                _result = _udpSock.Read();
+                if ( _result == NData::Null ) continue;
+                socklen_t _sLen = sizeof(_dnsReq.clientAddr);
+                ::sendto( gSvrSockUdp, _result.c_str(), _result.size(), 
+                    0, (struct sockaddr *)&_dnsReq.clientAddr, _sLen);
+                break;
+            }
+        } else {
+            // Redirect to tcp request
+            for ( int i = 0; i < gBlackDnsServer.Size(); ++i ) {
+                TcpSocket _tcpSock;
+                PeerInfo _dnsServerPeer;
+                _dnsServerPeer.Address = gBlackDnsServer[i];
+                _dnsServerPeer.Port = 53;
+                _dnsServerPeer.ConnectTimeOut = 500;
+                if ( _tcpSock.Connect( _dnsServerPeer ) == false ) continue;
+                if ( _tcpSock.Write( _dnsReq.queryData ) == false ) continue;
+                _result = _tcpSock.Read();
+                if ( _result == NData::Null ) continue;
+                socklen_t _sLen = sizeof(_dnsReq.clientAddr);
+                ::sendto( gSvrSockUdp, _result.c_str(), _result.size(), 
+                    0, (struct sockaddr *)&_dnsReq.clientAddr, _sLen);
+                break;
+            }
+        }
+    }
+}
+
+String getDomainFromRequestData( NData queryData ) 
+{
+    struct dnsPackage _dnsPkg;
+    const char * _buffer = queryData.c_str();
+    memcpy(&_dnsPkg, _buffer, sizeof(struct dnsPackage));
+    String _domain;
+    const char *_pDomain = _buffer + sizeof(struct dnsPackage);
+    for ( ;; ) {
+        Int8 _l = 0;
+        memcpy(&_l, _pDomain, sizeof(Int8));
+        //_l = ntohs(_l);
+        if ( _l == 0 ) {
+            break;
+        }
+        _pDomain += sizeof(Int8);
+        if ( _domain.Size() > 0 ) {
+            _domain.Append('.');
+        }
+        _domain.Append(_pDomain, _l);
+        _pDomain += _l;
+    }
+    return _domain;
+}
+
 void getTcpConnection()
 {
     TcpSocket _ssvr(gSvrSockTcp);
@@ -247,39 +294,20 @@ void getTcpConnection()
             continue;
         }
         if ( _svrfd->revents & POLLIN ) {
-            PINFO("New incoming socket.");
+            // PINFO("New incoming socket.");
             struct sockaddr_in _sockInfoClient;
             int _len = 0;
             SOCKET_T _clt = accept(gSvrSockTcp, (struct sockaddr *)&_sockInfoClient, (socklen_t *)&_len);
-            PINFO("client socket: " << _clt);
+            // PINFO("client socket: " << _clt);
             if ( _clt == -1 ) continue;
             TcpSocket _sclt(_clt);
             _sclt.SetReUsable(true);
-            PINFO("clinet info: " << _sclt.RemotePeerInfo() );
+            // PINFO("clinet info: " << _sclt.RemotePeerInfo() );
             // Try to read the package...
             NData _data = _sclt.Read();
-            PrintAsHex(_data);
-
-            struct dnsPackage _dnsPkg;
-            const char * _buffer = _data.c_str();
-            memcpy(&_dnsPkg, _buffer, sizeof(struct dnsPackage));
-            String _domain;
-            const char *_pDomain = _buffer + sizeof(struct dnsPackage);
-            for ( ;; ) {
-                Int8 _l = 0;
-                memcpy(&_l, _pDomain, sizeof(Int8));
-                //_l = ntohs(_l);
-                if ( _l == 0 ) {
-                    break;
-                }
-                _pDomain += sizeof(Int8);
-                if ( _domain.Size() > 0 ) {
-                    _domain.Append('.');
-                }
-                _domain.Append(_pDomain, _l);
-                _pDomain += _l;
-            }
-            PINFO("Is about lookup domain: " << _domain);
+            // PrintAsHex(_data);
+            String _domain = getDomainFromRequestData( _data );
+            //bool _needProxy = isDomainInBlacklist( _domain );
 
             _sclt.Close();
             // Redirect...
@@ -296,6 +324,15 @@ void getUdpConnection()
     _ssvr.SetReadTimeOut( 100 );
     char _buffer[1024];
     int _bLen = 1024;
+
+    // Start udp redirect workers
+    gUdpSem.Init(0);
+    Array< Thread< void( ) > * > _workList;
+    for ( int i = 0; i < 20; ++i ) {
+        Thread<void()> *_pRedirectWorker = new Thread<void()>(udpRedirectWorker);
+        _workList.PushBack( _pRedirectWorker );
+        _pRedirectWorker->Start();
+    }
     while ( ThreadSys::Running() ) {
         struct sockaddr_in _sockAddr;
         socklen_t _sLen = sizeof(_sockAddr);
@@ -312,51 +349,23 @@ void getUdpConnection()
         // PINFO("Incoming udp data..." << _address << ":" << ntohs(_sockAddr.sin_port));
         // PrintAsHex( _buffer, _dataLen );
         NData _queryData = NData( _buffer, _dataLen );
+        String _domain = getDomainFromRequestData( _queryData );
 
-        struct dnsPackage _dnsPkg;
-        memcpy(&_dnsPkg, _buffer, sizeof(struct dnsPackage));
-        String _domain;
-        char *_pDomain = _buffer + sizeof(struct dnsPackage);
-        for ( ;; ) {
-            Int8 _l = 0;
-            memcpy(&_l, _pDomain, sizeof(Int8));
-            //_l = ntohs(_l);
-            if ( _l == 0 ) {
-                break;
-            }
-            _pDomain += sizeof(Int8);
-            if ( _domain.Size() > 0 ) {
-                _domain.Append('.');
-            }
-            _domain.Append(_pDomain, _l);
-            _pDomain += _l;
-        }
-        // PINFO("Is about lookup domain: " << _domain);
-        bool _needProxy = isDomainInBlacklist( _domain );
-        PINFO( _address << ":" << ntohs(_sockAddr.sin_port) << 
-            " query domain<" << _domain << "> " << 
-            (_needProxy ? "need proxy" : "direct") );
-        if ( _needProxy == false ) {
-            UdpSocket _udpSock;
-            PeerInfo _pi;
-            _pi.Address = "202.96.209.5";
-            _pi.Port = 53;
-            PINFO( "Try to query parent: " << _pi );
-            if ( _udpSock.Connect(_pi) ) {
-                if (_udpSock.Write(_queryData)) {
-                    NData _resp = _udpSock.Read();
-                    if ( _resp != String::Null ) {
-                        PrintAsHex( _resp.c_str(), _resp.size() );
-                        ::sendto( gSvrSockUdp, _resp.c_str(), _resp.Size(), 0, (struct sockaddr *)&_sockAddr, _sLen);
-                        continue;
-                    }
-                }
-            }
-        } 
-        ::sendto(gSvrSockUdp, _buffer, _dataLen, 0, (struct sockaddr *)&_sockAddr, _sLen);
+        // Todo
+        TUdpDnsRequest _dnsReq = { _domain, _queryData, _sockAddr };
+        gUdpMutex.Lock();
+        gUdpReqQueue.Push( _dnsReq );
+        gUdpSem.Release();
+        gUdpMutex.UnLock();
     }
     PINFO("Will stop udp connection worker");
     _ssvr.Close();
+    for ( int i = 0; i < _workList.Size(); ++i ) {
+        //PINFO("Will stop redirect worker: " << i);
+        _workList[i]->Stop();
+        //PINFO("Did stop redirect worker: " << i);
+        delete _workList[i];
+    }
 }
 
 void pdnsVersionInfo()
@@ -424,6 +433,10 @@ int main( int argc, char * argv[] ) {
         }
 	}
 
+    // Add to global cache.
+    gLocalDnsServer.PushBack(_localParentDns);
+    gBlackDnsServer.PushBack(_blackParentDns);
+
     ReadStream _blStream(_blackListFilePath);
     if ( !_blStream ) {
         cerr << "Failed to open black list file at path: " << _blackListFilePath << endl;
@@ -481,6 +494,9 @@ int main( int argc, char * argv[] ) {
 
     WaitForExitSignal();
     _tcpWorker.Stop();
+    //PINFO("Tcp worker stopped");
     _udpWorker.Stop();
+    //PINFO("Udp worker stopped");
+    exit(0);
     return 0;
 }
