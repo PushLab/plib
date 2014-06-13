@@ -15,13 +15,14 @@ using namespace Plib::Utility;
 using namespace std;
 
 struct TBlackListNode;
-typedef pair< String, TBlackListNode * >   TBlackItem;
+typedef pair< String, TBlackListNode * >    TBlackItem;
+typedef map< String, TBlackListNode * >     TComKey;      
 struct TBlackListNode
 {
     Array<TBlackItem>               prefixList;
     Array<TBlackItem>               suffixList;
     Array<TBlackItem>               containList;
-    map<String, TBlackListNode *>   keys;
+    TComKey                         keys;
     TBlackListNode                  *everything;
     operator bool() const 
     {
@@ -84,26 +85,26 @@ void addPatternToBlackList( String pattern )
     Array<String> _components = pattern.Split(".");
     for ( int i = _components.Size() - 1; i >= 0; --i ) {
         String _com = _components[i];
-        PINFO("Parsing component: " << _com);
+        //PINFO("Parsing component: " << _com);
         bool _beginWithPattern = _com[0] == '*';
         bool _endWithPattern = _com[_com.Size() - 1] == '*';
         if ( _com == "*" ) {
-            PINFO( _com << " stands for everything..." );
+            //PINFO( _com << " stands for everything..." );
             _blNode->everything = new TBlackListNode;
             _blNode = _blNode->everything;
             continue;
         }
         if ( _beginWithPattern == false && _endWithPattern == false ) {
-            PINFO(_com << " is a static key");
+            //PINFO(_com << " is a static key");
             if ( _blNode->keys.find(_com) == _blNode->keys.end() ) {
                 _blNode->keys[_com] = new TBlackListNode;
             } 
             _blNode = _blNode->keys[_com];
         } else if ( _beginWithPattern == true && _endWithPattern == true ) {
-            PINFO(_com << " has both patten.");
+            //PINFO(_com << " has both patten.");
             bool _hasSameKey = false;
             String _ckey = _com.SubString(1, _com.Size() - 2);
-            PINFO("static part is: " << _ckey);
+            //PINFO("static part is: " << _ckey);
             for ( int c = 0; c < _blNode->containList.Size(); ++c ) {
                 TBlackItem _item = _blNode->containList[c];
                 if ( _item.first == _ckey ) {
@@ -119,10 +120,10 @@ void addPatternToBlackList( String pattern )
                 _blNode = _nextLevelNode;
             }
         } else if ( _beginWithPattern == true && _endWithPattern == false ) {
-            PINFO(_com << " is a suffix.");
+            //PINFO(_com << " is a suffix.");
             bool _hasSameKey = false;
             String _ckey = _com.SubString(1);
-            PINFO("static part is: " << _ckey);
+            //PINFO("static part is: " << _ckey);
             for ( int c = 0; c < _blNode->suffixList.Size(); ++c ) {
                 TBlackItem _item = _blNode->suffixList[c];
                 if ( _item.first == _ckey ) {
@@ -138,10 +139,10 @@ void addPatternToBlackList( String pattern )
                 _blNode = _nextLevelNode;
             }
         } else if ( _beginWithPattern == false && _endWithPattern == true ) {
-            PINFO(_com << " is a prefix.");
+            //PINFO(_com << " is a prefix.");
             bool _hasSameKey = false;
             String _ckey = _com.SubString(0, _com.Size() - 1);
-            PINFO("static part is: " << _ckey);
+            //PINFO("static part is: " << _ckey);
             for ( int c = 0; c < _blNode->prefixList.Size(); ++c ) {
                 TBlackItem _item = _blNode->prefixList[c];
                 if ( _item.first == _ckey ) {
@@ -183,60 +184,46 @@ struct dnsPackage {
 SOCKET_T            gSvrSockTcp;
 SOCKET_T            gSvrSockUdp;
 
-bool isDomainInBlacklist( Array<String> domainComs )
+bool _isDomainInBlacklist( String domain, TBlackListNode *blNode )
 {
-    TBlackListNode *_blNode = gBlRoot;
-	// First: check root's contains
-    for ( int i = domainComs.Size() - 1; i >= 0; --i ) {
-        String _com = domainComs[i];
-		PINFO("Check component: " << _com);
-        PIF ( _blNode->keys.find(_com) != _blNode->keys.end() ) {
-            _blNode = _blNode->keys[_com];
-            continue;
+    if ( blNode == NULL && domain.Size() == 0 ) return true;
+    if ( blNode == NULL ) return false;
+    if ( blNode->everything ) return true;
+    if ( blNode->containList.Size() ) {
+        for ( int _ctnt = 0; _ctnt < blNode->containList.Size(); ++_ctnt ) {
+            if ( domain.Find(blNode->containList[_ctnt].first) != String::NoPos ) return true;
         }
-        // Try to search suffix
-		bool _foundMatch = false;
-		for ( int s = 0; s < _blNode->suffixList.Size(); ++s ) {
-			PIF ( _com.EndWith( _blNode->suffixList[s].first ) ) {
-				_foundMatch = true;
-				_blNode = _blNode->suffixList[s].second;
-				// If current node is the leaf node, means everything is ok in this pattern
-				if ( *_blNode == false ) return true;
-				break;
-			}
-		}
-		PIF ( _foundMatch ) continue;
-		for ( int p = 0; p < _blNode->prefixList.Size(); ++p ) {
-			PIF ( _com.StartWith( _blNode->prefixList[p].first ) ) {
-				_foundMatch = true;
-				_blNode = _blNode->prefixList[p].second;
-				// If current node the leaf node, and no left components need to 
-				// be check, means ok.
-				if ( *_blNode == false && i == domainComs.Size() - 1 ) {
-					return true;
-				}
-				break;
-			}
-		}
-		PIF ( _foundMatch ) continue;
-		for ( int c = 0; c < _blNode->containList.Size(); ++c ) {
-			PIF ( _com.Find( _blNode->containList[c].first ) != String::NoPos ) {
-				_foundMatch = true;
-				_blNode = _blNode->containList[c].second;
-				// Same with suffix
-				if ( *_blNode == false ) return true;
-				break;
-			}
-		}
-		PIF ( _foundMatch ) continue;
-		PIF ( _blNode->everything != NULL ) {
-			return true;
-		}
-		// Find nothing
-		return false;
     }
-    // If the node is leaf node, means match.
-	return (*_blNode) == false;
+    if ( blNode->suffixList.Size() ) {
+        for ( int _sl = 0; _sl < blNode->suffixList.Size(); ++_sl ) {
+            if ( domain.EndWith(blNode->suffixList[_sl].first) ) return true;
+        }
+    }
+    if ( blNode->prefixList.Size() ) {
+        for ( int _pl = 0; _pl < blNode->prefixList.Size(); ++_pl ) {
+            if ( domain.StartWith(blNode->prefixList[_pl].first) ) return true;
+        }
+    }
+    if ( blNode->keys.size() ) {
+        String _com, _leftDomain;
+        String::Size_T _lastDot = domain.FindLast('.');
+        if ( _lastDot == String::NoPos ) {
+            _com = domain;
+        } else {
+            _com = domain.SubString(_lastDot + 1);
+            _leftDomain = domain.SubString(0, _lastDot);
+        }
+        //PINFO(_leftDomain);
+        TComKey::iterator _it = blNode->keys.find(_com);
+        if ( _it == blNode->keys.end() ) return false;
+        return _isDomainInBlacklist( _leftDomain, _it->second );
+    }
+    return false;
+}
+
+bool isDomainInBlacklist( String domain )
+{
+    return _isDomainInBlacklist( domain, gBlRoot );
 }
 
 void getTcpConnection()
@@ -428,22 +415,24 @@ int main( int argc, char * argv[] ) {
             addPatternToBlackList( _configLine );
         }
         //cout << *gBlRoot << endl;
-		Array<String> _apiTwitterCom = String("api.twitter.com").Split(".");
-		PIF( isDomainInBlacklist(_apiTwitterCom) ) {
+		PIF ( isDomainInBlacklist("api.twitter.com") ) {
 			PINFO("Case 1 pass");
 		}
-		Array<String> _wwwGoogleCodeCom = String("www.googlecode.com").Split(".");
-		PIF( isDomainInBlacklist(_wwwGoogleCodeCom) ) {
+		PIF( isDomainInBlacklist("www.googlecode.com") ) {
 			PINFO("Case 2 pass");
 		}
-		Array<String> _twitterpicCom = String("twitterpic.com").Split(".");
-		PIF( !isDomainInBlacklist(_twitterpicCom ) ) {
+		PIF( !isDomainInBlacklist("twitterpic.com" ) ) {
 			PINFO("Case 3 pass");
 		}
-		Array<String> _wwwBaiduCom = String("www.baidu.com").Split(".");
-		PIF( !isDomainInBlacklist(_wwwBaiduCom) ) {
+		PIF( !isDomainInBlacklist("www.baidu.com") ) {
 			PINFO("Case 4 pass");
 		}
+        PIF( isDomainInBlacklist("twitter.com") ) {
+            PINFO("Case 5 pass");
+        }
+        PIF( !isDomainInBlacklist("twitter") ) {
+            PINFO("Case 6 pass");
+        }
     }
 
     // Wait for exit

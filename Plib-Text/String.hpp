@@ -1117,14 +1117,15 @@ namespace Plib
 				
 				for ( Uint32 i = 0; ; /*Nothing to do, all in for*/) {
 					if ( _Buffer[i] == _Data[0] ) {
-						for ( Uint32 k = 0; k < _DLength; ++k ) {
+						Uint32 k = 0;
+						for ( ; k < _DLength; ++k ) {
 							if ( _Buffer[i + k] != _Data[k] ) break;
 						}
-						return (Uint32)i;
+						if ( k == _DLength ) return (Uint32)i;
 					}
 					i += _DLength;
 					while ( (Uint16)-1 == _InData[ (Uint8)_Buffer[i] ] && i < _Length ) ++i;
-					if ( i == _Length ) return (Uint32)-1;
+					if ( i >= _Length ) return (Uint32)-1;
 					i -= _InData[ (Uint8)_Buffer[i] ];
 				}
 				return (Uint32)-1;
