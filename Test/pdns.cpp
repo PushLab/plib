@@ -198,6 +198,12 @@ Queue< TUdpDnsRequest >     gUdpReqQueue;
 Semaphore                   gUdpSem;
 Mutex                       gUdpMutex;
 
+void tcpRedirectWorker()
+{
+    while ( ThreadSys::Running() ) {
+        
+    }
+}
 void udpRedirectWorker()
 {
     while ( ThreadSys::Running() ) {
