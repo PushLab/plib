@@ -133,11 +133,11 @@ void getTcpConnection()
             struct sockaddr_in _sockInfoClient;
             int _len = 0;
             SOCKET_T _clt = accept(gSvrSockTcp, (struct sockaddr *)&_sockInfoClient, (socklen_t *)&_len);
-            // PINFO("client socket: " << _clt);
+            PINFO("client socket: " << _clt);
             if ( _clt == -1 ) continue;
             TcpSocket *_sclt = new TcpSocket(_clt);
             _sclt->SetReUsable(true);
-            // PINFO("clinet info: " << _sclt.RemotePeerInfo() );
+            PINFO("clinet info: " << _sclt->RemotePeerInfo() );
             // Try to read the package...
             NData _queryData = _sclt->Read();
             PrintAsHex(_queryData);

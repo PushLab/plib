@@ -1,0 +1,7 @@
+[2014-06-19 09:14:14,185][28678][sdns.cpp][void getTcpConnection()][136]client socket: 4
+[2014-06-19 09:14:14,185][28678][sdns.cpp][void getTcpConnection()][140]clinet info: <66.175.221.214:60658>
+00007fd5b40025c0: 31 32 33 31 32 33 31 32 0a                      	|12312312.       |
+[2014-06-19 09:14:14,185][28686][sdns.cpp][void tcpRedirectWorker()][65]{_udpSock.Connect( _dnsServerPeer ) == false}: False
+[2014-06-19 09:14:14,185][28686][sdns.cpp][void tcpRedirectWorker()][66]{_udpSock.Write( _dnsReq.queryData ) == false}: False
+[2014-06-19 09:14:15,185][28686][sdns.cpp][void tcpRedirectWorker()][68]{_result == NData::Null}: False
+[2014-06-19 09:23:55,694][28678][sdns.cpp][void getTcpConnection()][154]Will stop tcp connection worker
