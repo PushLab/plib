@@ -237,7 +237,8 @@ void udpRedirectWorker()
                 PeerInfo _dnsServerPeer;
                 _dnsServerPeer.Address = gBlackDnsServer[i];
                 _dnsServerPeer.Port = gBlackDnsPort;
-                _dnsServerPeer.ConnectTimeOut = 500;
+                _dnsServerPeer.ConnectTimeOut = 1000;
+				PINFO("Redirect to server: " << _dnsServerPeer);
                 if ( _tcpSock.Connect( _dnsServerPeer ) == false ) continue;
                 if ( _tcpSock.Write( _dnsReq.queryData ) == false ) continue;
                 _result = _tcpSock.Read();
@@ -349,7 +350,7 @@ void getUdpConnection()
         //     (unsigned int)(_sockAddr.sin_addr.s_addr >> (2 * 8)) & 0x00FF,
         //     (unsigned int)(_sockAddr.sin_addr.s_addr >> (3 * 8)) & 0x00FF );
         // PINFO("Incoming udp data..." << _address << ":" << ntohs(_sockAddr.sin_port));
-        // PrintAsHex( _buffer, _dataLen );
+        PrintAsHex( _buffer, _dataLen );
         NData _queryData = NData( _buffer, _dataLen );
         String _domain = getDomainFromRequestData( _queryData );
 
@@ -388,6 +389,7 @@ int main( int argc, char * argv[] ) {
 	String _blackListFilePath = "~/.pdns.blacklist";
 	String _localParentDns = "202.96.209.133";
 	String _blackParentDns = "66.175.221.214";
+	gBlackDnsPort = 1025;
 
 	if ( argc >= 2 ) {
         int _arg = 1;
