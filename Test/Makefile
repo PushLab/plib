@@ -43,7 +43,7 @@ AR	 = ar
 STATIC_LIBS = 
 DYNAMIC_LIBS = 
 EXECUTABLE = 
-TEST_CASE = reqt pdns
+TEST_CASE = reqt pdns sdns
 
 RELAY_OBJECT = 
 
