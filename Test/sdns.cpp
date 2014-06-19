@@ -37,41 +37,9 @@ struct dnsPackage {
 SOCKET_T            gSvrSockTcp;
 Array<String>       gLocalDnsServer;
 
-// Udp Worker
-struct TTcpDnsRequest {
-    String                  queryDomain;
-    NData                   queryData;
-    TcpSocket               *clientSocket;
-};
-Queue< TTcpDnsRequest >     gTcpReqQueue;
+Queue< TcpSocket * >        gTcpReqQueue;
 Semaphore                   gTcpSem;
 Mutex                       gTcpMutex;
-
-void tcpRedirectWorker()
-{
-    while ( ThreadSys::Running() ) {
-        if ( gTcpSem.Get(100) == false ) continue;
-        gTcpMutex.Lock();
-        TTcpDnsRequest _dnsReq = gTcpReqQueue.Head();
-        gTcpReqQueue.Pop();
-        gTcpMutex.UnLock();
-
-        for ( int i = 0; i < gLocalDnsServer.Size(); ++i ) {
-            UdpSocket _udpSock;
-            PeerInfo _dnsServerPeer;
-            _dnsServerPeer.Address = gLocalDnsServer[i];
-            _dnsServerPeer.Port = 53;
-            _dnsServerPeer.ConnectTimeOut = 500;
-            if ( _udpSock.Connect( _dnsServerPeer ) == false ) continue;
-            if ( _udpSock.Write( _dnsReq.queryData ) == false ) continue;
-            NData _result = _udpSock.Read();
-            if ( _result == NData::Null ) continue;
-            _dnsReq.clientSocket->Write( _result );
-            delete _dnsReq.clientSocket;
-            break;
-        }
-    }
-}
 
 String getDomainFromRequestData( NData queryData ) 
 {
@@ -95,6 +63,44 @@ String getDomainFromRequestData( NData queryData )
         _pDomain += _l;
     }
     return _domain;
+}
+
+void tcpRedirectWorker()
+{
+    while ( ThreadSys::Running() ) {
+        if ( gTcpSem.Get(100) == false ) continue;
+        gTcpMutex.Lock();
+        TcpSocket *_reqSock = gTcpReqQueue.Head();
+        gTcpReqQueue.Pop();
+        gTcpMutex.UnLock();
+
+        NData _queryData = _reqSock->Read(1000);
+        if ( _queryData == NData::Null || _queryData.Size() == 0 ) {
+            PINFO("No Incoming data...");
+            delete _reqSock;
+            continue;
+        }
+
+        PrintAsHex( _queryData );
+        PINFO( "Try to query domain: " << getDomainFromRequestData(_queryData) );
+        
+        for ( int i = 0; i < gLocalDnsServer.Size(); ++i ) {
+            UdpSocket _udpSock;
+            PeerInfo _dnsServerPeer;
+            _dnsServerPeer.Address = gLocalDnsServer[i];
+            _dnsServerPeer.Port = 53;
+            _dnsServerPeer.ConnectTimeOut = 500;
+            PIF ( _udpSock.Connect( _dnsServerPeer ) == false ) continue;
+            PIF ( _udpSock.Write( _queryData ) == false ) continue;
+            NData _result = _udpSock.Read();
+            PIF ( _result == NData::Null ) continue;
+			PrintAsHex(_result);
+            _reqSock->Write( _result );
+            break;
+        }
+
+        delete _reqSock;
+    }
 }
 
 void getTcpConnection()
@@ -132,20 +138,14 @@ void getTcpConnection()
             struct sockaddr_in _sockInfoClient;
             int _len = 0;
             SOCKET_T _clt = accept(gSvrSockTcp, (struct sockaddr *)&_sockInfoClient, (socklen_t *)&_len);
-            // PINFO("client socket: " << _clt);
+            PINFO("client socket: " << _clt);
             if ( _clt == -1 ) continue;
             TcpSocket *_sclt = new TcpSocket(_clt);
             _sclt->SetReUsable(true);
-            // PINFO("clinet info: " << _sclt.RemotePeerInfo() );
-            // Try to read the package...
-            NData _queryData = _sclt->Read();
-            // PrintAsHex(_data);
-            String _domain = getDomainFromRequestData( _queryData );
-            //bool _needProxy = isDomainInBlacklist( _domain );
+            PINFO("clinet info: " << _sclt->RemotePeerInfo() );
 
-            TTcpDnsRequest _dnsReq = { _domain, _queryData, _sclt };
             gTcpMutex.Lock();
-            gTcpReqQueue.Push( _dnsReq );
+            gTcpReqQueue.Push( _sclt );
             gTcpSem.Release();
             gTcpMutex.UnLock();
         }
