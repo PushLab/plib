@@ -187,6 +187,7 @@ SOCKET_T            gSvrSockTcp;
 SOCKET_T            gSvrSockUdp;
 Array<String>       gLocalDnsServer;
 Array<String>       gBlackDnsServer;
+Uint32              gBlackDnsPort;
 
 // Udp Worker
 struct TUdpDnsRequest {
@@ -198,12 +199,6 @@ Queue< TUdpDnsRequest >     gUdpReqQueue;
 Semaphore                   gUdpSem;
 Mutex                       gUdpMutex;
 
-void tcpRedirectWorker()
-{
-    while ( ThreadSys::Running() ) {
-        
-    }
-}
 void udpRedirectWorker()
 {
     while ( ThreadSys::Running() ) {
@@ -241,7 +236,7 @@ void udpRedirectWorker()
                 TcpSocket _tcpSock;
                 PeerInfo _dnsServerPeer;
                 _dnsServerPeer.Address = gBlackDnsServer[i];
-                _dnsServerPeer.Port = 53;
+                _dnsServerPeer.Port = gBlackDnsPort;
                 _dnsServerPeer.ConnectTimeOut = 500;
                 if ( _tcpSock.Connect( _dnsServerPeer ) == false ) continue;
                 if ( _tcpSock.Write( _dnsReq.queryData ) == false ) continue;
@@ -384,7 +379,7 @@ void pdnsHelpInfo()
 {
     printf( "pdns -h|--help\n" );
     printf( "pdns -v|--version\n" );
-    printf( "pdns [-b|--blacklist <path>] [-ld|--localdns <dns>] [-bd|--blackdns <dns>]\n");
+    printf( "pdns [-b|--blacklist <path>] [-ld|--localdns <dns>] [-bd|--blackdns <dns>] [-bp|--blackport <port>]\n");
 }
 
 int main( int argc, char * argv[] ) {
@@ -392,7 +387,7 @@ int main( int argc, char * argv[] ) {
 	// Try to parse the command line argument
 	String _blackListFilePath = "~/.pdns.blacklist";
 	String _localParentDns = "202.96.209.133";
-	String _blackParentDns = "8.8.8.8";
+	String _blackParentDns = "66.175.221.214";
 
 	if ( argc >= 2 ) {
         int _arg = 1;
@@ -429,6 +424,15 @@ int main( int argc, char * argv[] ) {
             if ( _command == "-bd" || _command == "--blackdns" ) {
                 if ( _arg + 1 < argc ) {
                     _blackParentDns = argv[++_arg];
+                } else {
+                    cerr << "Invalidate argument: " << _command << ", missing parameter." << endl;
+                    return 1;
+                }
+                continue;
+            }
+            if ( _command == "-bp" || _command == "--blackport" ) {
+                if ( _arg + 1 < argc ) {
+                    gBlackDnsPort = String(argv[++_arg]).UintValue();
                 } else {
                     cerr << "Invalidate argument: " << _command << ", missing parameter." << endl;
                     return 1;
