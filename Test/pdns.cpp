@@ -241,8 +241,9 @@ void udpRedirectWorker()
 				PINFO("Redirect to server: " << _dnsServerPeer);
                 if ( _tcpSock.Connect( _dnsServerPeer ) == false ) continue;
                 if ( _tcpSock.Write( _dnsReq.queryData ) == false ) continue;
-                _result = _tcpSock.Read();
-                if ( _result == NData::Null ) continue;
+                _result = _tcpSock.Read(5000);
+                PIF ( _result == NData::Null || _result.size() == 0 ) continue;
+				PrintAsHex( _result );
                 socklen_t _sLen = sizeof(_dnsReq.clientAddr);
                 ::sendto( gSvrSockUdp, _result.c_str(), _result.size(), 
                     0, (struct sockaddr *)&_dnsReq.clientAddr, _sLen);
