@@ -62,10 +62,11 @@ void tcpRedirectWorker()
             _dnsServerPeer.Address = gLocalDnsServer[i];
             _dnsServerPeer.Port = 53;
             _dnsServerPeer.ConnectTimeOut = 500;
-            if ( _udpSock.Connect( _dnsServerPeer ) == false ) continue;
-            if ( _udpSock.Write( _dnsReq.queryData ) == false ) continue;
+            PIF ( _udpSock.Connect( _dnsServerPeer ) == false ) continue;
+            PIF ( _udpSock.Write( _dnsReq.queryData ) == false ) continue;
             NData _result = _udpSock.Read();
-            if ( _result == NData::Null ) continue;
+            PIF ( _result == NData::Null ) continue;
+			PrintAsHex(_result);
             _dnsReq.clientSocket->Write( _result );
             delete _dnsReq.clientSocket;
             break;
@@ -139,7 +140,7 @@ void getTcpConnection()
             // PINFO("clinet info: " << _sclt.RemotePeerInfo() );
             // Try to read the package...
             NData _queryData = _sclt->Read();
-            // PrintAsHex(_data);
+            PrintAsHex(_queryData);
             String _domain = getDomainFromRequestData( _queryData );
             //bool _needProxy = isDomainInBlacklist( _domain );
 
